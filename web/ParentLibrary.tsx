@@ -3,6 +3,7 @@ import { contentFallback } from './messages';
 import type { Mod } from '../src/domain/mods';
 import type { ParentGroup } from './parent-groups';
 import { loadPosition } from './load-order';
+import { parentTitle } from './mod-sort';
 
 type Details = Record<string, { title: string; description: string; preview_url: string }>;
 type Props = {
@@ -24,11 +25,7 @@ export function ParentLibrary(props: Props) {
   function content(group: ParentGroup) {
     const first = group.members[0];
     const remote = first.workshopId ? props.steam[first.workshopId] : undefined;
-    const title =
-      remote?.title ||
-      (group.key.startsWith('local-project:')
-        ? group.key.split('/').at(-1) || first.name
-        : first.name);
+    const title = parentTitle(group, props.steam);
     const image =
       remote?.preview_url ||
       (group.members.find((m) => m.image)?.image

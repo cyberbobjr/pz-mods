@@ -146,5 +146,12 @@
   "Retirer ce sous-mod": "Remove this submod",
   "Abonnement du parent ↗": "Parent subscription",
   "Déplier la navigation": "Expand navigation",
-  "Réduire la navigation": "Collapse navigation"
+  "Réduire la navigation": "Collapse navigation",
+  "Trier par": "Sort by",
+  "Ordre de la sauvegarde": "Save order",
+  "Mise à jour : plus récentes": "Updated: newest first",
+  "Mise à jour : plus anciennes": "Updated: oldest first",
+  "Nom : A → Z": "Name: A → Z",
+  "Nom : Z → A": "Name: Z → A",
+  "Dates Steam pour les mods Workshop ; dernière modification de mod.info pour les projets locaux. Les dates inconnues apparaissent à la fin.": "Steam update dates for Workshop mods; latest mod.info modification for local projects. Unknown dates appear last."
 }

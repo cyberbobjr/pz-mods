@@ -10,7 +10,7 @@ import { OrderEditor, type OrderValidation } from './OrderEditor';
 import { ParentLibrary } from './ParentLibrary';
 import { TransferDialog } from './TransferDialog';
 import { groupMods } from './parent-groups';
-import { orderParentGroups } from './load-order';
+import { SORT_STORAGE_KEY, readSortMode, sortParentGroups } from './mod-sort';
 import { PAGE_SIZES, PAGE_SIZE_STORAGE_KEY, readPageSize, paginate } from './pagination';
 type Overview = {
   saves: Save[];
@@ -88,6 +88,23 @@ function App() {
     }
   }
   const [page, setPage] = useState(1);
+  const [sortMode, setSortMode] = useState(() => {
+    try {
+      return readSortMode(localStorage.getItem(SORT_STORAGE_KEY));
+    } catch {
+      return readSortMode(null);
+    }
+  });
+  function changeSort(value: string) {
+    const next = readSortMode(value);
+    setSortMode(next);
+    setPage(1);
+    try {
+      localStorage.setItem(SORT_STORAGE_KEY, next);
+    } catch {
+      // Sorting remains available without browser storage.
+    }
+  }
   const [pageSize, setPageSize] = useState(() => {
     try {
       return readPageSize(localStorage.getItem(PAGE_SIZE_STORAGE_KEY));
@@ -195,12 +212,18 @@ function App() {
   const matchedGroups = groupMods(all).filter((group) =>
     group.members.some((mod) => filteredKeys.has(mod)),
   );
-  const parentGroups =
-    tab === 'active' ? orderParentGroups(matchedGroups, data?.active || []) : matchedGroups;
+  const effectiveSort = sortMode === 'save' && tab !== 'active' ? 'name-asc' : sortMode;
+  const parentGroups = sortParentGroups(
+    matchedGroups,
+    effectiveSort,
+    steam,
+    data?.active || [],
+    language,
+  );
   const pagination = paginate(parentGroups.length, page, pageSize);
   const shownGroups = parentGroups.slice(pagination.start, pagination.end);
-  const shown = shownGroups.flatMap((group) => group.members);
-  const keys = shown
+  // Fetch metadata for the complete inventory so sorting is global, across all pages.
+  const keys = all
     .map((m) => m.workshopId)
     .filter(Boolean)
     .join(',');
@@ -540,6 +563,18 @@ function App() {
                   })}
             </span>
             <label className="page-size-control">
+              {t('Trier par')}
+              <select value={effectiveSort} onChange={(event) => changeSort(event.target.value)}>
+                <option value="save" disabled={tab !== 'active' || !data?.selected}>
+                  {t('Ordre de la sauvegarde')}
+                </option>
+                <option value="updated-desc">{t('Mise à jour : plus récentes')}</option>
+                <option value="updated-asc">{t('Mise à jour : plus anciennes')}</option>
+                <option value="name-asc">{t('Nom : A → Z')}</option>
+                <option value="name-desc">{t('Nom : Z → A')}</option>
+              </select>
+            </label>
+            <label className="page-size-control">
               {t('Éléments par page')}
               <select value={pageSize} onChange={(event) => changePageSize(event.target.value)}>
                 {PAGE_SIZES.map((size) => (
@@ -596,7 +631,7 @@ function App() {
             </div>
           )}
           <p className="grouping-note">
-            {tab === 'active'
+            {tab === 'active' && effectiveSort === 'save'
               ? t(
                   'Un Workshop ID par ligne ou carte, avec tous ses sous-mods. Les tags affichent leur état et leur position dans la sauvegarde. Les parents sont triés par leur premier sous-mod actif ; consultez l’éditeur pour la séquence complète.',
                 )
@@ -604,6 +639,13 @@ function App() {
                   'Un parent par ligne ou carte. Tous ses sous-mods installés restent visibles, même désactivés. Cliquez sur un tag pour ouvrir sa fiche.',
                 )}
           </p>
+          {(effectiveSort === 'updated-asc' || effectiveSort === 'updated-desc') && (
+            <p className="grouping-note">
+              {t(
+                'Dates Steam pour les mods Workshop ; dernière modification de mod.info pour les projets locaux. Les dates inconnues apparaissent à la fin.',
+              )}
+            </p>
+          )}
           <ParentLibrary
             groups={shownGroups}
             view={view}

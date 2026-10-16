@@ -12,7 +12,7 @@ Un gestionnaire local pour explorer, diagnostiquer et organiser les mods de vos 
 ![Windows](https://img.shields.io/badge/Windows-local-8AB86C?style=flat-square)
 ![Languages](https://img.shields.io/badge/langues-FR%20%7C%20EN-C0E69A?style=flat-square)
 
-[Démarrer](#démarrage-rapide) · [Fonctionnalités](#fonctionnalités) · [Ordre des mods](#réorganiser-une-sauvegarde) · [Développement](#développement) · [Confidentialité](#confidentialité)
+[Démarrer](#démarrage-rapide) · [Fonctionnalités](#fonctionnalités) · [Tri](#trier-la-bibliothèque) · [Import / export](#importer-exporter-et-créer-une-collection) · [Ordre des mods](#réorganiser-une-sauvegarde) · [Développement](#développement) · [Confidentialité](#confidentialité)
 
 </div>
 
@@ -38,12 +38,29 @@ _Capture réelle de l’application, avec des mods et une sauvegarde de démonst
 | Parents Workshop regroupés, tags par sous-mod                | Incompatibilités déclarées et doublons d’IDs              | Flèches ↑ / ↓ et déplacement à une position précise  |
 | Recherche avec effacement rapide et filtres                  | Plages de versions et variantes Build 42                  | Annuler, rétablir et restaurer l’ordre initial       |
 | Mods Steam **et** projets de développement locaux            | Date de mise à jour Steam et date des métadonnées locales | Prévisualisation et copie de sécurité avant écriture |
+| Tri par nom, mise à jour ou ordre de sauvegarde              | Aperçu des associations sous-mods / parents Workshop      | Export serveur `.ini` et manifeste `.json`           |
+| Pagination et préférences mémorisées                         | Analyse d’une liste serveur, avec alertes de résolution   | Abonnements Steam et création guidée de collections  |
 
 Les filtres distinguent les mods **dans la sauvegarde**, **hors sauvegarde**, **manquants** et ceux à examiner dans le **diagnostic**. Le choix cartes/liste est mémorisé dans le navigateur.
 
 Le sélecteur **Éléments par page** propose 12, 24, 36, 60 ou 100 parents par page, en cartes comme en tableau. Ce choix est conservé entre les pages, filtres et sauvegardes, ainsi qu’au rafraîchissement. Un changement de taille revient à la première page et ne sépare jamais les sous-mods d’un même parent.
 
 La navigation latérale peut se replier en colonne d’icônes sur ordinateur. Les intitulés restent accessibles au survol et au clavier ; ce choix est également conservé au rafraîchissement.
+
+### Trier la bibliothèque
+
+Le sélecteur **Trier par** fonctionne en cartes comme en tableau :
+
+| Tri                               | Comportement                                                                                                    |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Ordre de la sauvegarde**        | Disponible dans « Dans la sauvegarde » ; chaque parent se place à la première position de ses sous-mods actifs. |
+| **Mise à jour : plus récentes**   | Date décroissante.                                                                                              |
+| **Mise à jour : plus anciennes**  | Date croissante.                                                                                                |
+| **Nom : A → Z** / **Nom : Z → A** | Tri sur le nom affiché du parent, avec prise en compte des accents et des nombres.                              |
+
+Le tri s’applique à toute la liste filtrée **avant pagination**, conserve les sous-mods regroupés et revient à la première page lors d’un changement. Le choix est mémorisé à la navigation et au rafraîchissement. Hors de la vue de sauvegarde, le choix « ordre de la sauvegarde » utilise temporairement le tri A à Z.
+
+Les dates proviennent de Steam pour les parents Workshop et de la dernière modification de `mod.info` pour les projets locaux. Pour un projet local contenant plusieurs sous-mods, la date la plus récente est retenue. Les dates inconnues restent à la fin dans les deux sens. Les métadonnées Steam de toute la bibliothèque sont chargées pour permettre un tri global ; le classement se précise à leur réception. **Trier l’affichage ne modifie jamais l’ordre enregistré dans la sauvegarde.**
 
 ### Français et anglais
 
@@ -141,6 +158,17 @@ Le bouton **Importer / exporter** ouvre un aperçu avant toute action :
 Microsoft Edge ou Google Chrome doit être installé pour ces actions Steam. La connexion s’effectue dans une fenêtre dédiée, avec son propre profil local `.cache/steam-profile/`. Aucun mot de passe ni cookie n’est transmis à l’interface de PZ Mods et aucune clé API n’est nécessaire. La création du formulaire reste une étape manuelle sur Steam ; l’application ne publie pas automatiquement une collection.
 
 Les mods locaux ne peuvent pas devenir des abonnements Workshop. Les IDs introuvables, ambigus ou absents de `WorkshopItems=` sont signalés. Une liste importée ne modifie aucune sauvegarde. Le fragment exporté ne remplace pas une configuration serveur complète : configurer séparément les cartes (`Map=`), les paramètres du monde et les mods locaux nécessaires. Une collection Steam ne conserve ni les sous-mods activés ni leur ordre : conserver aussi le fragment serveur ou le manifeste.
+
+### Exemple de transfert serveur
+
+```ini
+Mods=ExampleCore;ExampleVehicles;ExampleOptionalUI
+WorkshopItems=1234567890;2345678901
+```
+
+Exemple fictif : trois sous-mods peuvent dépendre de deux parents Workshop. Les deux listes ne se correspondent pas par position. Le manifeste JSON conserve les associations connues, les IDs d’origine et les avertissements.
+
+Pour reprendre cette liste : ouvrir **Importer / exporter → Importer un serveur**, coller les lignes ou charger le fichier, puis cliquer sur **Analyser le contenu**. Vérifier l’aperçu avant de télécharger les exports, de lancer les abonnements ou de créer une collection. Les opérations Steam sont exécutées par lots de dix, avec un bilan des réussites, abonnements déjà actifs et échecs. Les ajouts à une collection sont confirmés par relecture de son contenu.
 
 ## Sauvegardes et restauration
 
