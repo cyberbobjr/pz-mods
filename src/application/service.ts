@@ -63,7 +63,7 @@ export class ModService {
     const save = await this.library.readSave(saveId);
     if (save.revision !== revision)
       throw Error('La sauvegarde a changé. Actualise avant de poursuivre.');
-    const mods = await this.library.scan(save.version);
+    const mods = await this.library.scan(save.version, true);
     const blockers = removalBlockers(mods, save.ids, ids);
     if (blockers.length)
       throw Error(

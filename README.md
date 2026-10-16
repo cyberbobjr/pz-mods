@@ -230,6 +230,16 @@ Un indicateur affiche **Enregistrement…**, puis **Modifications enregistrées*
 
 **La séquence enregistrée dans un profil n’est pas une garantie de chargement dans le jeu** : Project Zomboid recalcule l’ordre à l’activation du profil.
 
+### Nettoyer les références aux mods manquants
+
+Dans **Mods manquants**, cliquer sur **Sélectionner les mods manquants**, puis **Retirer les IDs de la collection** et confirmer. La sélection porte sur tous les résultats du filtre courant, avant pagination. Le retrait supprime les références du profil avec une copie de secours ; aucun abonnement ni fichier de mod n’est supprimé.
+
+![Sélection de références manquantes fictives avant confirmation du retrait](docs/screenshot-remove-missing.png)
+
+Les identifiants qualifiés restent distincts : retirer `123/MonMod` conserve une éventuelle référence `456/MonMod`. Une référence déjà absente du disque peut être nettoyée même si un mod installé la déclare comme prérequis ; ce prérequis non résolu reste signalé dans le diagnostic. Le retrait d’un prérequis réellement installé reste protégé.
+
+Si le jeu réintroduit ces références lors de l’enregistrement, il faut aussi corriger le gestionnaire en jeu qui les ajoute : nettoyer le fichier dans PZ Mods ne modifie pas le comportement d’un autre mod.
+
 ### Dupliquer ou renommer une collection locale
 
 Sélectionner une collection puis utiliser **Dupliquer** ou **Renommer** dans le panneau du sélecteur. Saisir le nom souhaité et confirmer que le jeu est fermé. Un nom déjà utilisé est refusé : aucune collection existante n’est écrasée.

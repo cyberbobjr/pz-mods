@@ -1,3 +1,4 @@
+import { matchesActive, sourceInventory, missingModIds, selectionId } from './active-mods';
 import { translateIssue, translateError } from './messages';
 import { I18nProvider } from './i18n';
 import { useSourceI18n, SourceProvider } from './source-context';
@@ -66,14 +67,6 @@ async function api(url: string, body?: unknown) {
   const data = await r.json();
   if (!r.ok) throw Error(data.error || 'Erreur de connexion');
   return data;
-}
-function matchesActive(mod: Mod, ids: string[]) {
-  return ids.some((raw) => {
-    const qualified = raw.trim().replace(/^\\+/, '');
-    const provider = qualified.match(/^(\d+)\//)?.[1];
-    const id = qualified.replace(/^\d+\//, '');
-    return id === mod.id && (!provider || mod.workshopId === provider);
-  });
 }
 function App() {
   const [data, setData] = useState<Overview>();
@@ -322,37 +315,30 @@ function App() {
     void initialLoad.current(initialNavigation.saveId, true);
   }, [initialNavigation.saveId]);
   const active = useMemo(
-    () => new Set(data?.active.map((i) => i.replace(/^\\+/, '').replace(/^\d+\//, '')) || []),
+    () =>
+      new Set(
+        data?.active.map((i) =>
+          i
+            .trim()
+            .replace(/^\\+/, '')
+            .replace(/^\d+\//, ''),
+        ) || [],
+      ),
     [data],
   );
   const isActive = useCallback((mod: Mod) => matchesActive(mod, data?.active || []), [data]);
   const issueIds = useMemo(() => new Set(data?.issues.map((i) => i.modId) || []), [data]);
-  const all = useMemo(() => {
-    if (!data) return [];
-    return [
-      ...data.mods,
-      ...[...active]
-        .filter((id) => !data.mods.some((m) => m.id === id && matchesActive(m, data.active)))
-        .map(
-          (id) =>
-            ({
-              id,
-              workshopId: data.active
-                .find((raw) => raw.replace(/^\\+/, '').replace(/^\d+\//, '') === id)
-                ?.replace(/^\\+/, '')
-                .match(/^(\d+)\//)?.[1],
-              name: id,
-              description: t(
-                'Ce mod est référencé par la sauvegarde mais ses fichiers sont introuvables.',
-              ),
-              requires: [],
-              incompatible: [],
-              source: '',
-              variants: [],
-            }) as Mod,
-        ),
-    ];
-  }, [data, active, t]);
+  const all = useMemo(
+    () =>
+      data
+        ? sourceInventory(
+            data.mods,
+            data.active,
+            t('Ce mod est référencé par la sauvegarde mais ses fichiers sont introuvables.'),
+          )
+        : [],
+    [data, t],
+  );
   const filtered = useMemo(
     () =>
       all
@@ -415,7 +401,7 @@ function App() {
       cancelled = true;
     };
   }, [keys]);
-  const name = (id: string) => all.find((m) => m.id === id)?.name || id;
+  const name = (id: string) => all.find((m) => selectionId(m) === id)?.name || id;
   async function remove() {
     if (!data?.selected) return;
     const source = data.saves.find((source) => source.id === data.selected);
@@ -487,8 +473,7 @@ function App() {
               'missing',
               '!',
               t('Mods manquants'),
-              [...active].filter((id) => !data?.mods.some((mod) => mod.id === id && isActive(mod)))
-                .length,
+              all.filter((mod) => !mod.source && isActive(mod)).length,
             ],
             ['issues', '\u25c7', t('Diagnostic'), data?.issues.length || 0],
           ].map(([id, icon, label, count]) => (
@@ -939,6 +924,16 @@ function App() {
                     </button>
                   </div>
                 </div>
+                {tab === 'missing' && filtered.some((mod) => !mod.source && isActive(mod)) && (
+                  <button
+                    type="button"
+                    className="button library-selection-action"
+                    disabled={loading || !data?.revision}
+                    onClick={() => setChecked(new Set(missingModIds(filtered, data?.active || [])))}
+                  >
+                    {t('Sélectionner les mods manquants')}
+                  </button>
+                )}
                 {checked.size > 0 && (
                   <button
                     className="button destructive library-selection-action"
@@ -1196,7 +1191,7 @@ function App() {
             isActive={isActive}
             onSelect={setDetail}
             onRemove={(mod) => {
-              setChecked(new Set([mod.id]));
+              setChecked(new Set([selectionId(mod)]));
               setConfirm(true);
             }}
             onAdd={data?.selected && data.revision ? openAdd : undefined}
@@ -1229,7 +1224,15 @@ function App() {
             </p>
             <ul>
               {[...checked].map((id) => (
-                <li key={id}>{name(id)}</li>
+                <li key={id}>
+                  {name(id)}
+                  {name(id) !== id && (
+                    <>
+                      {' '}
+                      <code>{id}</code>
+                    </>
+                  )}
+                </li>
               ))}
             </ul>
             {error && (

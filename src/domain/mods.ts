@@ -43,6 +43,25 @@ export const normalize = (id: string) =>
     .trim()
     .replace(/^\\+/, '')
     .replace(/^\d+\//, '');
+const referenceProvider = (id: string) =>
+  id
+    .trim()
+    .replace(/^\\+/, '')
+    .match(/^(\d+)\//)?.[1];
+
+/** A qualified request selects only that active provider; plain IDs retain their legacy scope. */
+export function matchesActiveId(requested: string, active: string) {
+  const provider = referenceProvider(requested);
+  return (
+    normalize(requested) === normalize(active) &&
+    (!provider || provider === referenceProvider(active))
+  );
+}
+
+export function matchesInstalledMod(reference: string, mod: Mod) {
+  const provider = referenceProvider(reference);
+  return normalize(reference) === normalize(mod.id) && (!provider || provider === mod.workshopId);
+}
 export function compareVersion(a: string, b: string) {
   const x = a.split('.').map(Number),
     y = b.split('.').map(Number);
@@ -90,13 +109,13 @@ export function analyse(mods: Mod[], activeIds: string[], version?: string) {
     const mod = candidates[0];
     for (const dep of mod.requires) {
       const target = normalize(dep);
-      if (!active.has(target))
+      if (!activeIds.some((raw) => matchesActiveId(dep, raw)))
         issues.push({
           kind: 'dependency',
           severity: 'error',
           modId: id,
           target,
-          message: byId.has(target)
+          message: mods.some((candidate) => matchesInstalledMod(dep, candidate))
             ? 'Prérequis installé mais inactif dans cette sauvegarde.'
             : 'Prérequis absent du disque et de la sauvegarde.',
         });
@@ -130,16 +149,27 @@ export function analyse(mods: Mod[], activeIds: string[], version?: string) {
   return issues;
 }
 export function removalBlockers(mods: Mod[], activeIds: string[], removeIds: string[]) {
-  const removed = new Set(removeIds.map(normalize));
-  const active = new Set(activeIds.map(normalize));
-  return mods
-    .filter(
-      (m) =>
-        active.has(normalize(m.id)) &&
-        !removed.has(normalize(m.id)) &&
-        m.requires.some((d) => removed.has(normalize(d))),
-    )
-    .map((m) => m.id);
+  const selected = (raw: string) => removeIds.some((requested) => matchesActiveId(requested, raw));
+  const removed = activeIds.filter(selected);
+  const remaining = activeIds.filter((raw) => !selected(raw));
+  const installedTargets = removed.flatMap((raw) =>
+    mods.filter((mod) => matchesInstalledMod(raw, mod)),
+  );
+  // A reference absent from disk cannot provide a dependency. Removing that stale
+  // reference keeps the unresolved dependency visible without disabling its guard.
+  return [
+    ...new Set(
+      mods
+        .filter(
+          (m) =>
+            remaining.some((raw) => matchesInstalledMod(raw, m)) &&
+            m.requires.some((dependency) =>
+              installedTargets.some((target) => matchesInstalledMod(dependency, target)),
+            ),
+        )
+        .map((m) => m.id),
+    ),
+  ];
 }
 
 export type LoadOrderViolation = {

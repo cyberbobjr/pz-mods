@@ -6,6 +6,7 @@ import { loadPosition } from './load-order';
 import { parentTitle } from './mod-sort';
 import { parentDependents } from './dependents';
 import { DependencyBadge } from './DependencyBadge';
+import { selectionId } from './active-mods';
 
 type Details = Record<string, { title: string; description: string; preview_url: string }>;
 type Props = {
@@ -92,8 +93,8 @@ export function ParentLibrary(props: Props) {
               {active && (
                 <input
                   type="checkbox"
-                  checked={props.checked.has(mod.id)}
-                  onChange={() => props.onToggle(mod.id)}
+                  checked={props.checked.has(selectionId(mod))}
+                  onChange={() => props.onToggle(selectionId(mod))}
                   aria-label={t('Sélectionner {{name}} pour retrait', { name: mod.name })}
                 />
               )}

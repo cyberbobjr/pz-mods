@@ -11,7 +11,7 @@ import {
   parseProfileCollections,
   type ProfileCollection,
 } from '../domain/profiles.js';
-import { isExactPermutation, normalize, type Save } from '../domain/mods.js';
+import { isExactPermutation, matchesActiveId, type Save } from '../domain/mods.js';
 import { validateAddedId } from '../domain/additions.js';
 
 const collectionId = (contextId: string, name: string) =>
@@ -94,10 +94,10 @@ export class ProfileLibrary implements LibraryPort, ProfileMutationPort, Collect
   remove(id: string, ids: string[], revision: string) {
     if (!id.startsWith('collection:')) return this.local.remove(id, ids, revision);
     return this.mutate(id, revision, (profile) => {
-      const removed = new Set(ids.map(normalize));
-      if (ids.some((value) => !profile.ids.some((raw) => normalize(raw) === normalize(value))))
+      const removed = (raw: string) => ids.some((requested) => matchesActiveId(requested, raw));
+      if (ids.some((value) => !profile.ids.some((raw) => matchesActiveId(value, raw))))
         throw Error('Un mod demandé n’est pas actif.');
-      return profile.ids.filter((raw) => !removed.has(normalize(raw)));
+      return profile.ids.filter((raw) => !removed(raw));
     });
   }
   add(id: string, rawId: string, revision: string) {

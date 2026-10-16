@@ -13,6 +13,7 @@ import type { ProfileMutationPort } from '../application/profiles.js';
 import {
   compareVersion,
   normalize,
+  matchesActiveId,
   isExactPermutation,
   type Mod,
   type Save,
@@ -39,7 +40,7 @@ export function parseInfo(text: string) {
 const list = (s = '') =>
   s
     .split(/[;,\n]/)
-    .map(normalize)
+    .map((value) => value.trim())
     .filter(Boolean);
 export interface LocalLibraryOptions {
   userDir?: string;
@@ -383,18 +384,14 @@ export class LocalLibrary
   async remove(id: string, ids: string[], revision: string) {
     return this.writeSave(id, revision, (original) => {
       const active = parseSave(original);
-      if (ids.some((i) => !active.some((a) => normalize(a) === normalize(i))))
+      if (ids.some((i) => !active.some((a) => matchesActiveId(i, a))))
         throw Error("Un mod demandé n'est pas actif.");
-      const removed = new Set(ids.map(normalize));
+      const removed = (raw: string) => ids.some((requested) => matchesActiveId(requested, raw));
       const next = original.replace(
         /^[\t ]*mod[^\S\r\n]*=[^\S\r\n]*(.*?)\s*,?[\t ]*(?:\r?\n|$)/gm,
-        (line, value: string) =>
-          removed.has(normalize(value.replace(/,$/, '').trim())) ? '' : line,
+        (line, value: string) => (removed(value.replace(/,$/, '').trim()) ? '' : line),
       );
-      if (
-        parseSave(next).length !==
-        active.length - active.filter((i) => removed.has(normalize(i))).length
-      )
+      if (parseSave(next).length !== active.length - active.filter(removed).length)
         throw Error('Format mods.txt non pris en charge.');
       return next;
     });
