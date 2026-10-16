@@ -14,6 +14,8 @@ import { SteamAccount } from './steam-account.js';
 import { SteamCatalog } from './steam-catalog.js';
 import { SettingsService } from '../application/settings.js';
 import { SettingsStore } from './settings-store.js';
+import { ExplorerService } from '../application/explorer.js';
+import { WindowsExplorer } from './windows-explorer.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const app = Fastify({ logger: false, bodyLimit: 1024 * 1024 });
 const library = new LocalLibrary();
@@ -29,6 +31,7 @@ const service = new ModService(
   new PosterCache({ directory: path.join(root, '.cache/posters') }),
 );
 const transfers = new TransferService(library);
+const explorer = new ExplorerService(library, new WindowsExplorer());
 const steamAccount = new SteamAccount(path.join(root, '.cache/steam-profile'));
 const steamActions = new SteamActionsService(steamAccount, new SteamCatalog());
 app.addHook('onClose', async () => steamAccount.close());
@@ -59,6 +62,7 @@ app.get('/api/overview', async (req) => {
   return service.overview(save, refresh === '1');
 });
 app.get('/api/settings', async () => settings.get());
+app.post('/api/mods/open-folder', async (req) => explorer.openModFolder(requestBody(req.body).key));
 app.post('/api/settings', async (req) => settings.update(requestBody(req.body).paths));
 app.post('/api/transfers/export', async (req) => {
   const body = requestBody(req.body);

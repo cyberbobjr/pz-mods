@@ -326,6 +326,12 @@ body {
 .dependent-row .tag {
   flex-shrink: 0;
 }
+.folder-open-error {
+  margin: 16px 24px;
+}
+.detail-footer-actions .button:not(.primary):not(.destructive) {
+  color: var(--text);
+}
 @keyframes panel-reveal {
   from {
     opacity: 0;

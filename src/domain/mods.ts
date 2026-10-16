@@ -6,6 +6,7 @@ export type Mod = {
   requires: string[];
   incompatible: string[];
   image?: string;
+  folderKey?: string;
   source: string;
   versionMin?: string;
   versionMax?: string;

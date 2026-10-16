@@ -8,6 +8,7 @@ import type { LibraryPort } from '../application/service.js';
 import type { ConfigurableLibraryPort } from '../application/settings.js';
 import { parsePathOverrides, type PathOverrides, type SettingsResult } from '../domain/settings.js';
 import { validateAddedId } from '../domain/additions.js';
+import type { DirectoryResolverPort } from '../application/explorer.js';
 import {
   compareVersion,
   normalize,
@@ -50,7 +51,7 @@ async function isGameRunning() {
   return /"ProjectZomboid[^"\r\n]*\.exe"/i.test(processes.stdout);
 }
 
-export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort {
+export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort, DirectoryResolverPort {
   private root: string;
   private steamPath = '';
   private savesRoot = '';
@@ -63,6 +64,7 @@ export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort {
     this.root = options.userDir || process.env.PZ_USER_DIR || path.join(os.homedir(), 'Zomboid');
   }
   private images = new Map<string, string>();
+  private modDirectories = new Map<string, { folder: string; realPath: string }>();
   private savePaths = new Map<string, string>();
   private busy = false;
   private gameVersion = '';
@@ -139,6 +141,7 @@ export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort {
       this.overrides = overrides;
       this.generation++;
       this.images.clear();
+      this.modDirectories.clear();
       this.savePaths.clear();
       this.scanned = [];
       this.scannedAt = 0;
@@ -213,6 +216,7 @@ export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort {
       return this.scanned;
     const mods: Mod[] = [];
     const images = new Map<string, string>();
+    const modDirectories = new Map<string, { folder: string; realPath: string }>();
     const roots = [
       ...this.localRoots.map((folder) => ({ folder, workshop: false, development: false })),
       { folder: path.join(this.root, 'Workshop'), workshop: false, development: true },
@@ -275,6 +279,10 @@ export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort {
           }
           if (!info.id) continue;
           const id = normalize(info.id);
+          const directory = await fs.realpath(modDir).catch(() => undefined);
+          const folderKey = directory ? hash(`directory:${directory}`).slice(0, 24) : undefined;
+          if (folderKey && directory)
+            modDirectories.set(folderKey, { folder: modDir, realPath: directory });
           const imageKey = hash(infoPath).slice(0, 24);
           let image: string | undefined;
           for (const imageName of [info.poster, info.icon].filter(Boolean)) {
@@ -322,6 +330,7 @@ export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort {
             incompatible: list(info.incompatible || info.incompatibility || info.incompatiblemods),
             workshopId,
             image,
+            folderKey,
             source: infoPath,
             metadataModifiedAt: await fs
               .stat(infoPath)
@@ -339,6 +348,7 @@ export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort {
     if (generation !== this.generation || this.configuring)
       throw Error('Les chemins ont changé. Actualise la liste.');
     this.images = images;
+    this.modDirectories = modDirectories;
     this.scanned = mods;
     this.scannedAt = Date.now();
     this.scannedVersion = version;
@@ -347,6 +357,25 @@ export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort {
   async image(key: string) {
     this.ensureConfigured();
     return this.images.get(key);
+  }
+  async resolveModDirectory(key: string) {
+    this.ensureConfigured();
+    const generation = this.generation;
+    if (!/^[a-f0-9]{24}$/.test(key)) return undefined;
+    const directory = this.modDirectories.get(key);
+    if (!directory) return undefined;
+    try {
+      if (!(await fs.stat(directory.folder)).isDirectory()) return undefined;
+      const actual = await fs.realpath(directory.folder);
+      return !this.configuring &&
+        generation === this.generation &&
+        this.modDirectories.get(key) === directory &&
+        actual === directory.realPath
+        ? directory.realPath
+        : undefined;
+    } catch {
+      return undefined;
+    }
   }
   async remove(id: string, ids: string[], revision: string) {
     return this.writeSave(id, revision, (original) => {

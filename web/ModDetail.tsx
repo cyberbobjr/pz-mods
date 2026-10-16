@@ -1,5 +1,5 @@
 import { Tooltip } from './ui/Tooltip';
-import { translateIssue, contentFallback } from './messages';
+import { translateIssue, translateError, contentFallback } from './messages';
 import { useI18n } from './i18n';
 import { useState } from 'react';
 import type { Mod, Issue } from '../src/domain/mods';
@@ -20,6 +20,7 @@ type Props = {
   onSelect: (mod: Mod) => void;
   onRemove: (mod: Mod) => void;
   onAdd?: (mod: Mod) => void;
+  onOpenFolder: (mod: Mod) => Promise<void>;
   onClose: () => void;
 };
 const plain = (text: string) => text.replace(/\[\/?[^\]]+\]/g, '').replace(/<[^>]*>/g, '');
@@ -47,10 +48,27 @@ export function ModDetail({
   onSelect,
   onRemove,
   onAdd,
+  onOpenFolder,
   onClose,
 }: Props) {
   const { t, language } = useI18n();
   const [tab, setTab] = useState<'description' | 'compatibility'>('description');
+  const [openingFolder, setOpeningFolder] = useState(false);
+  const [folderError, setFolderError] = useState<{ source: string; message: string }>();
+  async function openFolder() {
+    setOpeningFolder(true);
+    setFolderError(undefined);
+    try {
+      await onOpenFolder(mod);
+    } catch (reason) {
+      setFolderError({
+        source: mod.source,
+        message: reason instanceof Error ? reason.message : String(reason),
+      });
+    } finally {
+      setOpeningFolder(false);
+    }
+  }
   const parent = groupMods(members)[0];
   const title = workshop?.title || (parent ? parentTitle(parent, {}) : mod.name);
   const poster = workshop?.preview_url || (mod.image ? '/api/image/' + mod.image : undefined);
@@ -312,6 +330,27 @@ export function ModDetail({
           <small>{t('Le retrait conserve les fichiers et l’abonnement Steam.')}</small>
         </div>
         <div className="detail-footer-actions">
+          <Tooltip
+            content={t(
+              'Ouvre le dossier du sous-mod sélectionné dans l’Explorateur Windows, à la racine du mod.',
+            )}
+          >
+            <button
+              className="button"
+              disabled={!mod.folderKey || openingFolder}
+              onClick={() => void openFolder()}
+            >
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path
+                  d="M2.5 6V4.5h5l2 2h8v9h-15V6Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {openingFolder ? t('Ouverture…') : t('Ouvrir le dossier du mod')}
+            </button>
+          </Tooltip>
           {active && (
             <Tooltip
               content={t(
@@ -346,6 +385,11 @@ export function ModDetail({
           )}
         </div>
       </footer>
+      {folderError?.source === mod.source && (
+        <div className="alert error folder-open-error" role="alert">
+          {translateError(folderError.message)}
+        </div>
+      )}
     </Dialog>
   );
 }

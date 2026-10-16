@@ -118,6 +118,8 @@ Il correspond à **un abonnement Steam**, avec un titre, une description, un pos
 
 Chaque sous-mod possède son **propre ID** et son état dans la sauvegarde : **activé** ou **désactivé**. Cliquer sur son tag ouvre sa fiche, ses prérequis et ses incompatibilités.
 
+Dans sa fiche, **Ouvrir le dossier du mod** ouvre l’Explorateur Windows sur le répertoire du sous-mod sélectionné, pour les mods Steam comme pour les mods locaux. Il s’agit de la racine du mod, au-dessus des variantes `42` ou `common`. Le bouton est désactivé si les fichiers n’ont pas été détectés ; si le dossier a disparu depuis l’analyse, actualiser la bibliothèque. Le backend accepte uniquement un identifiant opaque associé à un dossier détecté, jamais un chemin libre fourni par le navigateur.
+
 - **Retirer un sous-mod** modifie uniquement sa présence dans `mods.txt`.
 - **Se désabonner sur Steam** concerne tout le parent et peut affecter d’autres sauvegardes.
 - Le bouton **Abonnement du parent** ouvre actuellement la fiche Steam : le désabonnement direct depuis l’application n’est pas implémenté.

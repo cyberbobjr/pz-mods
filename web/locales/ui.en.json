@@ -25,5 +25,11 @@
   "INSTALLÉ, INACTIF": "INSTALLED, INACTIVE",
   "DANS LA SAUVEGARDE": "IN THE SAVE",
   "ORIGINE INCONNUE": "UNKNOWN ORIGIN",
-  "Fichiers introuvables": "Files not found"
+  "Fichiers introuvables": "Files not found",
+  "Ouvre le dossier du sous-mod sélectionné dans l’Explorateur Windows, à la racine du mod.": "Open the selected submod's root folder in Windows Explorer.",
+  "Ouverture…": "Opening...",
+  "Ouvrir le dossier du mod": "Open mod folder",
+  "Dossier du mod indisponible. Actualisez la bibliothèque.": "Mod folder unavailable. Refresh the library.",
+  "Dossier de mod introuvable. Actualise l’inventaire.": "Mod folder not found. Refresh the inventory.",
+  "Impossible d’ouvrir ce dossier dans l’Explorateur Windows.": "Unable to open this folder in Windows Explorer."
 }

@@ -919,6 +919,11 @@ function App() {
             setConfirm(true);
           }}
           onAdd={data?.selected ? openAdd : undefined}
+          onOpenFolder={async (mod) => {
+            if (!mod.folderKey)
+              throw Error(t('Dossier du mod indisponible. Actualisez la bibliothèque.'));
+            await api('/api/mods/open-folder', { key: mod.folderKey });
+          }}
           onClose={() => setDetail(undefined)}
         />
       )}
