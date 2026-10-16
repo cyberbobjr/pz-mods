@@ -21,7 +21,8 @@ for (const file of files) {
     /(?:^|\/)(?:node_modules|dist|\.cache|\.playwright-mcp|Saves|backups)(?:\/|$)/i.test(file) ||
     (/(?:^|\/)\.env(?:$|\.)/.test(file) && !file.endsWith('.env.example')) ||
     /\.(?:bak|tmp|log|pem|key|pfx|p12)$/i.test(file) ||
-    /(?:^|\/)\.npmrc$/.test(file)
+    /(?:^|\/)\.npmrc$/.test(file) ||
+    /(?:^|\/)pz_modlist_settings\.cfg$/i.test(file)
   ) {
     failures.push(`${file}: fichier local ou confidentiel interdit`);
     continue;

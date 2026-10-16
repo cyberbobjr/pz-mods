@@ -16,6 +16,8 @@ import { SettingsService } from '../application/settings.js';
 import { SettingsStore } from './settings-store.js';
 import { ExplorerService } from '../application/explorer.js';
 import { WindowsExplorer } from './windows-explorer.js';
+import { ProfileService } from '../application/profiles.js';
+import { LocalProfileStore } from './profile-store.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const app = Fastify({ logger: false, bodyLimit: 1024 * 1024 });
 const library = new LocalLibrary();
@@ -32,6 +34,7 @@ const service = new ModService(
 );
 const transfers = new TransferService(library);
 const explorer = new ExplorerService(library, new WindowsExplorer());
+const profiles = new ProfileService(library, new LocalProfileStore());
 const steamAccount = new SteamAccount(path.join(root, '.cache/steam-profile'));
 const steamActions = new SteamActionsService(steamAccount, new SteamCatalog());
 app.addHook('onClose', async () => steamAccount.close());
@@ -63,6 +66,27 @@ app.get('/api/overview', async (req) => {
 });
 app.get('/api/settings', async () => settings.get());
 app.post('/api/mods/open-folder', async (req) => explorer.openModFolder(requestBody(req.body).key));
+for (const route of ['preview', 'export']) {
+  app.post(`/api/profiles/${route}`, async (req) => {
+    const body = requestBody(req.body);
+    if (
+      typeof body.saveId !== 'string' ||
+      typeof body.revision !== 'string' ||
+      typeof body.name !== 'string'
+    )
+      throw Error('Requête d’export de profil invalide.');
+    if (route === 'preview') return profiles.preview(body.saveId, body.revision, body.name);
+    if (typeof body.profileRevision !== 'string' || typeof body.overwrite !== 'boolean')
+      throw Error('Requête d’export de profil invalide.');
+    return profiles.export(
+      body.saveId,
+      body.revision,
+      body.name,
+      body.profileRevision,
+      body.overwrite,
+    );
+  });
+}
 app.post('/api/settings', async (req) => settings.update(requestBody(req.body).paths));
 app.post('/api/transfers/export', async (req) => {
   const body = requestBody(req.body);

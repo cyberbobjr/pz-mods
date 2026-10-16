@@ -9,6 +9,7 @@ import type { ConfigurableLibraryPort } from '../application/settings.js';
 import { parsePathOverrides, type PathOverrides, type SettingsResult } from '../domain/settings.js';
 import { validateAddedId } from '../domain/additions.js';
 import type { DirectoryResolverPort } from '../application/explorer.js';
+import type { ProfileMutationPort } from '../application/profiles.js';
 import {
   compareVersion,
   normalize,
@@ -51,7 +52,9 @@ async function isGameRunning() {
   return /"ProjectZomboid[^"\r\n]*\.exe"/i.test(processes.stdout);
 }
 
-export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort, DirectoryResolverPort {
+export class LocalLibrary
+  implements LibraryPort, ConfigurableLibraryPort, DirectoryResolverPort, ProfileMutationPort
+{
   private root: string;
   private steamPath = '';
   private savesRoot = '';
@@ -446,12 +449,7 @@ export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort, Direc
     });
   }
   private async writeSave(id: string, revision: string, transform: (original: string) => string) {
-    this.ensureConfigured();
-    if (this.busy) throw Error('Une modification est déjà en cours.');
-    this.busy = true;
-    try {
-      if (await (this.options.isGameRunning || isGameRunning)())
-        throw Error('Ferme Project Zomboid avant de modifier une sauvegarde.');
+    return this.withMutation(async () => {
       const file = path.join(this.savePath(id), 'mods.txt');
       const original = await fs.readFile(file, 'utf8');
       if (hash(original) !== revision) throw Error('La sauvegarde a changé. Actualise.');
@@ -474,6 +472,23 @@ export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort, Direc
         await fs.unlink(temporary).catch(() => {});
       }
       return backup;
+    });
+  }
+  async profileUserDir() {
+    this.ensureConfigured();
+    return this.root;
+  }
+  async withProfileMutation<T>(operation: (userDir: string) => Promise<T>) {
+    return this.withMutation(() => operation(this.root));
+  }
+  private async withMutation<T>(operation: () => Promise<T>) {
+    this.ensureConfigured();
+    if (this.busy) throw Error('Une modification est déjà en cours.');
+    this.busy = true;
+    try {
+      if (await (this.options.isGameRunning || isGameRunning)())
+        throw Error('Ferme Project Zomboid avant de modifier une sauvegarde.');
+      return await operation();
     } finally {
       this.busy = false;
     }

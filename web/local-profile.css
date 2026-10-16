@@ -1,0 +1,171 @@
+.local-profile {
+  margin-top: 28px;
+  padding: 23px;
+  background: var(--panel-sunken);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.local-profile-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.local-profile-heading h3 {
+  margin: 10px 0 0;
+  padding: 0;
+  border: 0;
+  font-size: 18px;
+}
+.local-profile > p {
+  font-size: 11px !important;
+}
+.local-profile-form > label,
+.local-profile-preview > label {
+  display: block;
+  margin: 18px 0 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+.local-profile-name-row {
+  display: flex;
+  gap: 10px;
+}
+.local-profile-name-row > input {
+  min-width: 0;
+  flex: 1;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.local-profile .local-profile-name-row > input {
+  width: auto;
+  margin: 0;
+}
+.local-profile-preview {
+  margin-top: 23px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.local-profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.local-profile-summary > strong {
+  font-size: 14px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  margin-right: auto;
+}
+.local-profile-preview > textarea {
+  display: block;
+  width: 100%;
+  resize: vertical;
+  min-height: 95px;
+  border: 1px solid var(--accent-line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 12px;
+  font:
+    11px/1.8 ui-monospace,
+    Consolas,
+    monospace;
+}
+.local-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+.local-profile-note {
+  font-size: 10px !important;
+  color: var(--muted) !important;
+  line-height: 1.8;
+}
+.local-profile-notice {
+  font-size: 11px !important;
+  color: var(--mint) !important;
+}
+.local-profile-direct {
+  margin-top: 23px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.local-profile-direct h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+.local-profile-direct > p {
+  font-size: 11px !important;
+  overflow-wrap: anywhere;
+}
+.local-profile-check {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 15px 0 !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  line-height: 1.8;
+  color: var(--text);
+}
+.local-profile-check > input {
+  flex-shrink: 0;
+  margin: 4px 0 0;
+  accent-color: var(--mint);
+  width: 14px;
+  height: 14px;
+}
+.local-profile-overwrite {
+  padding: 10px 13px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: 5px;
+}
+.local-profile-result {
+  padding: 15px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.local-profile-result > p {
+  font-size: 10px !important;
+  margin: 6px 0 0;
+}
+.local-profile-direct > .primary {
+  margin-top: 5px;
+}
+@media (max-width: 600px) {
+  .local-profile {
+    padding: 16px;
+  }
+  .local-profile-heading {
+    align-items: flex-start;
+  }
+  .local-profile-heading h3 {
+    font-size: 16px;
+  }
+  .local-profile-name-row {
+    flex-direction: column;
+  }
+  .local-profile .local-profile-name-row > input {
+    width: 100%;
+  }
+  .local-profile-actions > .button {
+    flex: 1 1 100%;
+  }
+  .local-profile-direct > .primary {
+    width: 100%;
+  }
+}

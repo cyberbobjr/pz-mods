@@ -190,6 +190,7 @@ La section **Utilisé par** liste les consommateurs directs du sous-mod, avec le
 Le bouton **Importer / exporter** ouvre un aperçu avant toute action :
 
 - **Depuis une sauvegarde** : télécharger un fragment serveur `.ini` ou un manifeste JSON. `Mods=` conserve l’ordre des IDs Zomboid ; `WorkshopItems=` contient les parents Steam sans doublons.
+- **Profil local du jeu** : copier un profil partageable, télécharger un `.cfg` autonome ou l’enregistrer dans `Lua/pz_modlist_settings.cfg`, avec préservation des favoris et des autres profils.
 - **Depuis un serveur** : coller une liste ou charger un `.ini`, puis analyser. Seules les directives `Mods=` et `WorkshopItems=` sont retenues ; les mots de passe et autres paramètres sont ignorés.
 - **Abonnements** : connecter Steam, examiner les parents proposés, puis confirmer. Les éléments déjà abonnés sont conservés et les échecs sont détaillés par lot.
 - **Collection** : ouvrir le formulaire officiel Steam prérempli, terminer sa création dans le navigateur, puis revenir détecter la collection et confirmer l’ajout des parents sélectionnés.
@@ -208,6 +209,31 @@ WorkshopItems=1234567890;2345678901
 Exemple fictif : trois sous-mods peuvent dépendre de deux parents Workshop. Les deux listes ne se correspondent pas par position. Le manifeste JSON conserve les associations connues, les IDs d’origine et les avertissements.
 
 Pour reprendre cette liste : ouvrir **Importer / exporter → Importer un serveur**, coller les lignes ou charger le fichier, puis cliquer sur **Analyser le contenu**. Vérifier l’aperçu avant de télécharger les exports, de lancer les abonnements ou de créer une collection. Les opérations Steam sont exécutées par lots de dix, avec un bilan des réussites, abonnements déjà actifs et échecs. Les ajouts à une collection sont confirmés par relecture de son contenu.
+
+### Créer un profil de collection locale
+
+Dans **Importer / exporter → Exporter la sauvegarde → Exporter un profil de mods**, choisir un nom puis cliquer sur **Prévisualiser le profil**. L’export reprend les IDs de la sauvegarde, y compris les mods locaux, conserve les qualifications `123456789/ModId` et retire les antislashs initiaux utilisés dans certains `mods.txt`. Les doublons identiques sont retirés.
+
+Trois actions sont proposées :
+
+- **Copier le texte du profil** : le coller dans la fonction **Ajouter** des profils du sélecteur de mods du jeu.
+- **Télécharger ce profil .cfg** : obtenir un fichier autonome contenant uniquement ce profil et une ligne de favoris vide. **Ne pas remplacer votre fichier existant avec ce téléchargement**, car il ne contient pas vos autres profils.
+- **Créer le profil local** : jeu fermé, confirmer l’écriture dans `<racine utilisateur Zomboid>/Lua/pz_modlist_settings.cfg`. Cette racine suit la page Configuration et `PZ_USER_DIR`. Les favoris et les profils existants sont conservés ; un nom déjà utilisé nécessite une confirmation distincte pour remplacer uniquement ce profil.
+
+![Export d’un profil local : aperçu des IDs, texte partageable et confirmation avant création](docs/screenshot-profiles.png)
+
+Le format natif, vérifié dans les fonctions de lecture, d’écriture et de partage de `ModSelectorModel.lua`, est un texte UTF-8 :
+
+```text
+!fav!:ExampleFavorite;
+Ma collection:ExampleCore;123456789/ExampleOption;LocalExample;
+```
+
+La première ligne est réservée aux favoris ; chaque ligne suivante est un profil `Nom:ModId;ModId;`. Le nom ne peut pas contenir les caractères réservés du format ou utiliser le préfixe `!fav!`.
+
+Avant l’écriture directe, l’application revérifie la sauvegarde source et le fichier de profils. Une copie `pz_modlist_settings.cfg.pz-mods-<date>-<identifiant>.bak` est créée si le fichier existe ; le remplacement est atomique et conserve son encodage UTF-8, son éventuel BOM et ses fins de ligne. L’aperçu et le téléchargement ne modifient aucun fichier du jeu. Les tests utilisent des profils fictifs dans des dossiers temporaires.
+
+**Un profil natif ne garantit pas l’ordre de chargement exact de la sauvegarde** : le jeu utilise des tables Lua et recalcule l’ordre lors de l’activation. Conserver le manifeste ou l’export serveur pour partager également la séquence des IDs. Aucun abonnement Steam ni téléchargement de mod n’est effectué par cet export.
 
 ## Sauvegardes et restauration
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Dialog } from './Dialog';
 import { useI18n } from './i18n';
 import { translateError } from './messages';
+import { LocalProfileExport } from './LocalProfileExport';
 
 type Props = {
   save?: { id: string; name: string; revision: string };
@@ -46,6 +47,8 @@ export function TransferDialog({ save, onClose }: Props) {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [profileBusy, setProfileBusy] = useState(false);
+  const controlsBusy = busy || profileBusy;
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [steam, setSteam] = useState({ available: false, connected: false });
@@ -193,7 +196,7 @@ export function TransferDialog({ save, onClose }: Props) {
     <Dialog
       label={t('Importer et exporter des mods')}
       onClose={() => {
-        if (!busy) onClose();
+        if (!controlsBusy) onClose();
       }}
       className="transfer-dialog"
     >
@@ -202,14 +205,19 @@ export function TransferDialog({ save, onClose }: Props) {
           <span className="eyebrow">{t('SAUVEGARDES ET SERVEURS')}</span>
           <h2>{t('Importer et exporter des mods')}</h2>
         </div>
-        <button className="button" aria-label={t('Fermer')} onClick={onClose} disabled={busy}>
+        <button
+          className="button"
+          aria-label={t('Fermer')}
+          onClick={onClose}
+          disabled={controlsBusy}
+        >
           ×
         </button>
       </div>
       <div className="detail-tabs" role="group" aria-label={t('Type de transfert')}>
         <button
           aria-pressed={tab === 'export'}
-          disabled={!save || busy}
+          disabled={!save || controlsBusy}
           onClick={() => {
             setTab('export');
             resetActions();
@@ -219,7 +227,7 @@ export function TransferDialog({ save, onClose }: Props) {
         </button>
         <button
           aria-pressed={tab === 'import'}
-          disabled={busy}
+          disabled={controlsBusy}
           onClick={() => {
             setTab('import');
             resetActions();
@@ -252,7 +260,7 @@ export function TransferDialog({ save, onClose }: Props) {
             id="transfer-file"
             type="file"
             accept=".ini,text/plain"
-            disabled={busy}
+            disabled={controlsBusy}
             onChange={(event) => {
               const file = event.target.files?.[0];
               if (!file) return;
@@ -270,7 +278,7 @@ export function TransferDialog({ save, onClose }: Props) {
             id="transfer-text"
             rows={8}
             value={text}
-            disabled={busy}
+            disabled={controlsBusy}
             onChange={(event) => {
               setText(event.target.value);
               setImportPreview(undefined);
@@ -280,7 +288,7 @@ export function TransferDialog({ save, onClose }: Props) {
           />
           <button
             className="button primary"
-            disabled={busy || !text.trim()}
+            disabled={controlsBusy || !text.trim()}
             onClick={() => void analyze()}
           >
             {t('Analyser le contenu')}
@@ -294,6 +302,14 @@ export function TransferDialog({ save, onClose }: Props) {
         </div>
       )}
       {loading && tab === 'export' && <p role="status">{t('Préparation de l’export…')}</p>}
+      {tab === 'export' && save && (
+        <LocalProfileExport
+          key={save.id}
+          save={save}
+          disabled={busy}
+          onBusyChange={setProfileBusy}
+        />
+      )}
       {preview && (
         <>
           <div className="transfer-stats">
@@ -347,7 +363,7 @@ export function TransferDialog({ save, onClose }: Props) {
           <div className="transfer-actions">
             <button
               className="button"
-              disabled={busy}
+              disabled={controlsBusy}
               onClick={() =>
                 download(preview.serverText, 'pz-mods-server.ini', 'text/plain;charset=utf-8')
               }
@@ -356,7 +372,7 @@ export function TransferDialog({ save, onClose }: Props) {
             </button>
             <button
               className="button"
-              disabled={busy}
+              disabled={controlsBusy}
               onClick={() =>
                 download(
                   JSON.stringify(preview.manifest, null, 2),
@@ -374,7 +390,7 @@ export function TransferDialog({ save, onClose }: Props) {
             >
               <button
                 className="button"
-                disabled={busy}
+                disabled={controlsBusy}
                 onClick={() =>
                   void perform(async () => {
                     await navigator.clipboard.writeText(preview.serverText);
@@ -410,7 +426,7 @@ export function TransferDialog({ save, onClose }: Props) {
                 <div className="transfer-actions">
                   <button
                     className="button"
-                    disabled={busy}
+                    disabled={controlsBusy}
                     onClick={() =>
                       void perform(async () => {
                         await request('/api/steam/connect', {});
@@ -422,7 +438,11 @@ export function TransferDialog({ save, onClose }: Props) {
                   >
                     {t('Ouvrir la connexion Steam')}
                   </button>
-                  <button className="button" disabled={busy} onClick={() => void refreshSteam()}>
+                  <button
+                    className="button"
+                    disabled={controlsBusy}
+                    onClick={() => void refreshSteam()}
+                  >
                     {t('Vérifier la connexion')}
                   </button>
                 </div>
@@ -432,7 +452,7 @@ export function TransferDialog({ save, onClose }: Props) {
                 <p className="tag">{t('SESSION STEAM CONNECTÉE')}</p>
                 <button
                   className="button primary"
-                  disabled={busy || !ids.length}
+                  disabled={controlsBusy || !ids.length}
                   onClick={() => {
                     setConfirmation('subscribe');
                     setResult(undefined);
@@ -450,7 +470,7 @@ export function TransferDialog({ save, onClose }: Props) {
                 <input
                   id="collection-title"
                   value={title}
-                  disabled={busy || collectionPending}
+                  disabled={controlsBusy || collectionPending}
                   maxLength={128}
                   onChange={(event) => setTitle(event.target.value)}
                 />
@@ -462,7 +482,7 @@ export function TransferDialog({ save, onClose }: Props) {
                 {!collectionPending ? (
                   <button
                     className="button"
-                    disabled={busy || !ids.length || !title.trim()}
+                    disabled={controlsBusy || !ids.length || !title.trim()}
                     onClick={() =>
                       void perform(async () => {
                         await request('/api/steam/collections/begin', { title: title.trim() });
@@ -482,7 +502,7 @@ export function TransferDialog({ save, onClose }: Props) {
                     </p>
                     <button
                       className="button"
-                      disabled={busy}
+                      disabled={controlsBusy}
                       onClick={() =>
                         void perform(async () => {
                           const detected = await request<{ id?: string }>(
@@ -513,7 +533,7 @@ export function TransferDialog({ save, onClose }: Props) {
                         </a>
                         <button
                           className="button primary"
-                          disabled={busy}
+                          disabled={controlsBusy}
                           onClick={() => {
                             setConfirmation('collection');
                             setResult(undefined);
@@ -552,14 +572,14 @@ export function TransferDialog({ save, onClose }: Props) {
                 <div className="transfer-actions">
                   <button
                     className="button"
-                    disabled={busy}
+                    disabled={controlsBusy}
                     onClick={() => setConfirmation(undefined)}
                   >
                     {t('Annuler')}
                   </button>
                   <button
                     className="button primary"
-                    disabled={busy}
+                    disabled={controlsBusy}
                     onClick={() => void runBatches(confirmation)}
                   >
                     {t('Confirmer et lancer')}
@@ -567,7 +587,7 @@ export function TransferDialog({ save, onClose }: Props) {
                 </div>
               </div>
             )}
-            {busy && <p role="status">{t('Opération en cours…')}</p>}
+            {controlsBusy && <p role="status">{t('Opération en cours…')}</p>}
             {result && (
               <div className="transfer-result" role="status">
                 <h4>{t('Résultat des opérations Steam')}</h4>
