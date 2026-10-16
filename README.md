@@ -41,6 +41,8 @@ _Capture réelle de l’application, avec des mods et une sauvegarde de démonst
 
 Les filtres distinguent les mods **dans la sauvegarde**, **hors sauvegarde**, **manquants** et ceux à examiner dans le **diagnostic**. Le choix cartes/liste est mémorisé dans le navigateur.
 
+Le sélecteur **Éléments par page** propose 12, 24, 36, 60 ou 100 parents par page, en cartes comme en tableau. Ce choix est conservé entre les pages, filtres et sauvegardes, ainsi qu’au rafraîchissement. Un changement de taille revient à la première page et ne sépare jamais les sous-mods d’un même parent.
+
 La navigation latérale peut se replier en colonne d’icônes sur ordinateur. Les intitulés restent accessibles au survol et au clavier ; ce choix est également conservé au rafraîchissement.
 
 ### Français et anglais

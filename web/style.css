@@ -1491,7 +1491,27 @@ h2 {
   width: 12px;
   height: 12px;
 }
+.page-size-control {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #a0b18e;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.page-size-control select {
+  background: #1c2616;
+  color: #d4e7be;
+  border: 1px solid #415334;
+  border-radius: 5px;
+  padding: 7px 10px;
+  font-size: 11px;
+}
+.pagination-range {
+  margin-right: auto;
+}
 .pagination {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   justify-content: center;

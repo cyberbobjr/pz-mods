@@ -10,6 +10,7 @@ import { OrderEditor, type OrderValidation } from './OrderEditor';
 import { ParentLibrary } from './ParentLibrary';
 import { groupMods } from './parent-groups';
 import { orderParentGroups } from './load-order';
+import { PAGE_SIZES, PAGE_SIZE_STORAGE_KEY, readPageSize, paginate } from './pagination';
 type Overview = {
   saves: Save[];
   selected?: string;
@@ -85,6 +86,23 @@ function App() {
     }
   }
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(() => {
+    try {
+      return readPageSize(localStorage.getItem(PAGE_SIZE_STORAGE_KEY));
+    } catch {
+      return readPageSize(null);
+    }
+  });
+  function changePageSize(value: string) {
+    const next = readPageSize(value);
+    setPageSize(next);
+    setPage(1);
+    try {
+      localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(next));
+    } catch {
+      /* Pagination stays usable when storage is unavailable. */
+    }
+  }
   const [detail, setDetail] = useState<Mod>();
   const [steam, setSteam] = useState<Details>({});
   const [workshopError, setWorkshopError] = useState(false);
@@ -177,7 +195,8 @@ function App() {
   );
   const parentGroups =
     tab === 'active' ? orderParentGroups(matchedGroups, data?.active || []) : matchedGroups;
-  const shownGroups = parentGroups.slice((page - 1) * 36, page * 36);
+  const pagination = paginate(parentGroups.length, page, pageSize);
+  const shownGroups = parentGroups.slice(pagination.start, pagination.end);
   const shown = shownGroups.flatMap((group) => group.members);
   const keys = shown
     .map((m) => m.workshopId)
@@ -187,11 +206,18 @@ function App() {
     let cancelled = false;
     const ids = [...new Set(keys.split(',').filter(Boolean))];
     if (ids.length)
-      api('/api/workshop', { ids })
-        .then((d) => {
+      Promise.allSettled(
+        Array.from({ length: Math.ceil(ids.length / 50) }, (_, index) =>
+          api('/api/workshop', { ids: ids.slice(index * 50, (index + 1) * 50) }),
+        ),
+      )
+        .then((batches) => {
           if (!cancelled) {
-            setSteam((s) => ({ ...s, ...d }));
-            setWorkshopError(false);
+            const successful = batches
+              .filter((batch) => batch.status === 'fulfilled')
+              .map((batch) => batch.value);
+            setSteam((s) => Object.assign({}, s, ...successful));
+            setWorkshopError(batches.some((batch) => batch.status === 'rejected'));
           }
         })
         .catch(() => {
@@ -508,6 +534,16 @@ function App() {
                     ids: filtered.length,
                   })}
             </span>
+            <label className="page-size-control">
+              {t('Éléments par page')}
+              <select value={pageSize} onChange={(event) => changePageSize(event.target.value)}>
+                {PAGE_SIZES.map((size) => (
+                  <option value={size} key={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="view-switch" role="group" aria-label={t('Mode d’affichage')}>
               <button
                 type="button"
@@ -578,17 +614,28 @@ function App() {
           {!loading && filtered.length === 0 && (
             <div className="empty">{t('Aucun mod ne correspond à ce filtre.')}</div>
           )}
-          <div className="pagination">
-            <button className="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-              {'\u2190'} {t('Précédent')}
-            </button>
-            <span>
-              {page} / {Math.max(1, Math.ceil(parentGroups.length / 36))}
+          <div className="pagination" aria-label={t('Pagination')}>
+            <span className="pagination-range">
+              {t('{{start}}–{{end}} sur {{total}} parents', {
+                start: parentGroups.length ? pagination.start + 1 : 0,
+                end: pagination.end,
+                total: parentGroups.length,
+              })}
             </span>
             <button
               className="button"
-              disabled={page * 36 >= parentGroups.length}
-              onClick={() => setPage((p) => p + 1)}
+              disabled={pagination.page === 1}
+              onClick={() => setPage(pagination.page - 1)}
+            >
+              {'\u2190'} {t('Précédent')}
+            </button>
+            <span>
+              {pagination.page} / {pagination.pageCount}
+            </span>
+            <button
+              className="button"
+              disabled={pagination.page === pagination.pageCount}
+              onClick={() => setPage(pagination.page + 1)}
             >
               {t('Suivant')}
               {'\u2192'}

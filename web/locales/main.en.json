@@ -1,4 +1,7 @@
 {
+  "Éléments par page": "Items per page",
+  "Pagination": "Pagination",
+  "{{start}}–{{end}} sur {{total}} parents": "{{start}}–{{end}} of {{total}} parents",
   "Un Workshop ID par ligne ou carte, avec tous ses sous-mods. Les tags affichent leur état et leur position dans la sauvegarde. Les parents sont triés par leur premier sous-mod actif ; consultez l’éditeur pour la séquence complète.": "One Workshop ID per row or card, with all its submods. Tags show each submod's state and save position. Parents are sorted by their first enabled submod; open the editor to see the full sequence.",
   "Aucune sauvegarde sélectionnée.": "No save selected.",
   "Ce mod est référencé par la sauvegarde mais ses fichiers sont introuvables.": "This mod is referenced by the save, but its files could not be found.",
