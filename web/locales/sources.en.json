@@ -1,4 +1,7 @@
 {
+  "DANS LA COLLECTION": "IN THE COLLECTION",
+  "HORS COLLECTION": "OUTSIDE THE COLLECTION",
+  "Déclaré comme prérequis par {{count}} mod(s), dont {{active}} actif(s) dans cette collection.": "Declared as a requirement by {{count}} mod(s), including {{active}} enabled in this collection.",
   "ORDRE DE LA COLLECTION": "COLLECTION ORDER",
   "Ferme Project Zomboid avant de modifier une collection.": "Close Project Zomboid before editing a collection.",
   "Un mod demandé n’est pas actif.": "One of the requested mods is not enabled.",

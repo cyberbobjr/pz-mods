@@ -37,7 +37,7 @@ const service = new ModService(
 );
 const transfers = new TransferService(library);
 const explorer = new ExplorerService(localLibrary, new WindowsExplorer());
-const profiles = new ProfileService(library, profileStore);
+const profiles = new ProfileService(library, profileStore, library);
 const steamAccount = new SteamAccount(path.join(root, '.cache/steam-profile'));
 const steamActions = new SteamActionsService(steamAccount, new SteamCatalog());
 app.addHook('onClose', async () => steamAccount.close());
@@ -69,6 +69,18 @@ app.get('/api/overview', async (req) => {
 });
 app.get('/api/settings', async () => settings.get());
 app.post('/api/mods/open-folder', async (req) => explorer.openModFolder(requestBody(req.body).key));
+for (const action of ['rename', 'duplicate'] as const) {
+  app.post(`/api/profiles/${action}`, async (req) => {
+    const body = requestBody(req.body);
+    if (
+      typeof body.saveId !== 'string' ||
+      typeof body.revision !== 'string' ||
+      typeof body.name !== 'string'
+    )
+      throw Error('Requête de modification de collection invalide.');
+    return profiles[action](body.saveId, body.revision, body.name);
+  });
+}
 app.post('/api/profiles/delete', async (req) => {
   const body = requestBody(req.body);
   if (typeof body.saveId !== 'string' || typeof body.revision !== 'string')

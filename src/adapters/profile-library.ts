@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
 import type { LibraryPort } from '../application/service.js';
-import type { ProfileMutationPort, ProfileStorePort } from '../application/profiles.js';
+import type {
+  ProfileMutationPort,
+  ProfileStorePort,
+  CollectionIdentityPort,
+} from '../application/profiles.js';
 import {
   buildProfileFragment,
   insertProfile,
@@ -14,12 +18,15 @@ const collectionId = (contextId: string, name: string) =>
   `collection:${createHash('sha256').update(contextId).update('\0').update(name).digest('hex').slice(0, 24)}`;
 
 /** Routes only opaque collection IDs to the native profile file; all other work stays local. */
-export class ProfileLibrary implements LibraryPort, ProfileMutationPort {
+export class ProfileLibrary implements LibraryPort, ProfileMutationPort, CollectionIdentityPort {
   private collectionsError?: string;
   constructor(
     private readonly local: LibraryPort & ProfileMutationPort,
     private readonly profiles: ProfileStorePort,
   ) {}
+  collectionId(contextId: string, name: string) {
+    return collectionId(contextId, name);
+  }
 
   async saves(): Promise<Save[]> {
     const saves = (await this.local.saves()).map((save) => ({ ...save, kind: 'save' as const }));

@@ -1,0 +1,78 @@
+.collection-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.collection-action-trigger {
+  margin-top: 13px;
+  padding: 5px 0;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.collection-action-trigger:hover {
+  color: var(--mint);
+}
+.collection-change-dialog h2 {
+  font-size: 24px;
+  overflow-wrap: anywhere;
+}
+.collection-change-scope {
+  background: var(--panel-sunken);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 11px !important;
+}
+.collection-change-dialog form > label:first-child {
+  display: block;
+  margin: 20px 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.collection-change-dialog form > input {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-sunken);
+  color: var(--text);
+  font-size: 12px;
+}
+.collection-change-hint {
+  font-size: 10px !important;
+  color: var(--muted) !important;
+  margin-top: 7px !important;
+}
+.collection-change-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 19px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.collection-change-check input {
+  margin: 5px 0 0;
+  accent-color: var(--mint);
+  flex-shrink: 0;
+}
+.collection-change-dialog .alert {
+  margin-top: 15px;
+}
+@media (max-width: 600px) {
+  .collection-change-dialog .modal-actions {
+    flex-direction: column-reverse;
+  }
+  .collection-change-dialog .modal-actions > .button {
+    width: 100%;
+  }
+  .collection-actions {
+    gap: 14px;
+  }
+}

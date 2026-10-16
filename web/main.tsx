@@ -5,6 +5,13 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, useReducer } 
 import { sourceWriteReducer, type WritePhase } from './write-state';
 import { SourceWriteStatus } from './SourceWriteStatus';
 import {
+  CollectionChangeDialog,
+  CollectionChangeNotice,
+  type CollectionAction,
+  type CollectionChangeResult,
+} from './CollectionChangeDialog';
+import { collectionContexts } from './collection-contexts';
+import {
   DeleteCollectionDialog,
   CollectionDeletedNotice,
   type DeletedCollection,
@@ -80,6 +87,22 @@ function App() {
     kind: 'collection';
   }>();
   const [deletedCollection, setDeletedCollection] = useState<DeletedCollection>();
+  const [changingCollection, setChangingCollection] = useState<{
+    action: CollectionAction;
+    source: { id: string; name: string; revision: string; kind: 'collection' };
+  }>();
+  const [changedCollection, setChangedCollection] = useState<CollectionChangeResult>();
+  function openCollectionChange(action: CollectionAction) {
+    const source = data?.saves.find((source) => source.id === data.selected);
+    if (!source || source.kind !== 'collection' || !data?.revision) return;
+    dispatchWrite({ type: 'dismiss' });
+    setDeletedCollection(undefined);
+    setChangedCollection(undefined);
+    setChangingCollection({
+      action,
+      source: { id: source.id, name: source.name, revision: data.revision, kind: 'collection' },
+    });
+  }
   function reportWrite(
     source: { id: string; name: string; kind?: Save['kind'] },
     phase: WritePhase | 'idle',
@@ -87,6 +110,7 @@ function App() {
   ) {
     if (source.kind !== 'collection') return;
     setDeletedCollection(undefined);
+    setChangedCollection(undefined);
     dispatchWrite(
       phase === 'idle'
         ? { type: 'idle', id: source.id }
@@ -120,7 +144,7 @@ function App() {
     initialId?: string;
   }>();
   function openAdd(mod?: Mod) {
-    if (!data?.selected) return;
+    if (!data?.selected || !data.revision) return;
     setAdding({
       save: {
         id: data.selected,
@@ -250,7 +274,12 @@ function App() {
     [orderEditor, t],
   );
   const loadSequence = useRef(0);
-  async function load(id?: string, restore = false, force = false) {
+  async function load(
+    id?: string,
+    restore = false,
+    force = false,
+    options?: { retainSelectionOnError?: boolean },
+  ) {
     const sequence = ++loadSequence.current;
     setLoading(true);
     setError('');
@@ -277,7 +306,7 @@ function App() {
     } catch (e) {
       if (sequence === loadSequence.current) {
         setError(String((e as Error).message));
-        if (data && id && id !== data.selected) {
+        if (data && id && id !== data.selected && !options?.retainSelectionOnError) {
           const previous = contexts.current[navigationContextKey(data.selected, tab)];
           setSelectedSave(data.selected);
           setSearch(previous?.search || '');
@@ -596,26 +625,45 @@ function App() {
                   />
                 )}
                 {sourceKind === 'collection' && (
-                  <button
-                    type="button"
-                    className="delete-collection-trigger"
-                    disabled={loading || busy}
-                    onClick={() => {
-                      const source = data?.saves.find((source) => source.id === data.selected);
-                      if (!source || source.kind !== 'collection' || !data) return;
-                      dispatchWrite({ type: 'dismiss' });
-                      setDeletedCollection(undefined);
-                      setDeletingCollection({
-                        id: source.id,
-                        name: source.name,
-                        revision: data.revision,
-                        kind: 'collection',
-                      });
-                    }}
-                  >
-                    <span aria-hidden="true">×</span>
-                    {t('Supprimer cette collection…')}
-                  </button>
+                  <div className="collection-actions">
+                    <button
+                      type="button"
+                      className="collection-action-trigger"
+                      disabled={loading || busy || !data?.revision}
+                      onClick={() => openCollectionChange('rename')}
+                    >
+                      {t('Renommer…')}
+                    </button>
+                    <button
+                      type="button"
+                      className="collection-action-trigger"
+                      disabled={loading || busy || !data?.revision}
+                      onClick={() => openCollectionChange('duplicate')}
+                    >
+                      {t('Dupliquer…')}
+                    </button>
+                    <button
+                      type="button"
+                      className="delete-collection-trigger"
+                      disabled={loading || busy || !data?.revision}
+                      onClick={() => {
+                        const source = data?.saves.find((source) => source.id === data.selected);
+                        if (!source || source.kind !== 'collection' || !data?.revision) return;
+                        dispatchWrite({ type: 'dismiss' });
+                        setDeletedCollection(undefined);
+                        setChangedCollection(undefined);
+                        setDeletingCollection({
+                          id: source.id,
+                          name: source.name,
+                          revision: data.revision,
+                          kind: 'collection',
+                        });
+                      }}
+                    >
+                      <span aria-hidden="true">×</span>
+                      {t('Supprimer cette collection…')}
+                    </button>
+                  </div>
                 )}
               </div>
             </section>
@@ -740,136 +788,163 @@ function App() {
               </p>
             )}
             <section className="library" key={tab}>
-              <div className="section-head">
-                <h2>
-                  {tab === 'active'
-                    ? t('Dans votre sauvegarde')
-                    : tab === 'unused'
-                      ? t('À côté de votre partie')
-                      : tab === 'missing'
-                        ? t('Mods manquants')
-                        : tab === 'issues'
-                          ? t('Mods à examiner')
-                          : t('Tous vos mods')}{' '}
-                  <span>{filtered.length}</span>
-                </h2>
-                <div className="search-field">
-                  <input
-                    ref={searchRef}
-                    aria-label={t('Rechercher un mod')}
-                    placeholder={t('Rechercher un nom, un ID…')}
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setPage(1);
-                    }}
-                  />
-                  {search && (
+              <div className="library-toolbar">
+                <div className="library-heading-row section-head">
+                  <div className="library-heading-copy">
+                    <h2>
+                      {tab === 'active'
+                        ? t('Dans votre sauvegarde')
+                        : tab === 'unused'
+                          ? t('À côté de votre partie')
+                          : tab === 'missing'
+                            ? t('Mods manquants')
+                            : tab === 'issues'
+                              ? t('Mods à examiner')
+                              : t('Tous vos mods')}{' '}
+                      <span>{filtered.length}</span>
+                    </h2>
+                    <span className="library-summary">
+                      {loading
+                        ? t('Analyse des fichiers locaux…')
+                        : t('{{parents}} éléments parents · {{ids}} IDs correspondant au filtre', {
+                            parents: parentGroups.length,
+                            ids: filtered.length,
+                          })}
+                    </span>
+                  </div>
+                  <div className="library-primary-actions">
+                    <Tooltip
+                      content={t(
+                        'Activer un identifiant de mod dans la sauvegarde sélectionnée, après vérification.',
+                      )}
+                    >
+                      <button
+                        className="button primary"
+                        disabled={loading || !data?.selected || !data.revision}
+                        onClick={() => openAdd()}
+                      >
+                        {t('＋ Ajouter un mod')}
+                      </button>
+                    </Tooltip>
+                    {tab === 'active' && (
+                      <button
+                        className="button"
+                        disabled={
+                          loading || !data?.selected || !data.revision || data.active.length < 2
+                        }
+                        onClick={() => {
+                          if (!data?.selected) return;
+                          setOrderEditor({
+                            saveId: data.selected,
+                            revision: data.revision,
+                            ids: [...data.active],
+                            name:
+                              data.saves.find((save) => save.id === data.selected)?.name ||
+                              data.selected,
+                          });
+                        }}
+                      >
+                        {t('↕ Modifier l’ordre')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="library-controls-row">
+                  <div className="search-field">
+                    <input
+                      ref={searchRef}
+                      aria-label={t('Rechercher un mod')}
+                      placeholder={t('Rechercher un nom, un ID…')}
+                      value={search}
+                      onChange={(e) => {
+                        setSearch(e.target.value);
+                        setPage(1);
+                      }}
+                    />
+                    {search && (
+                      <button
+                        type="button"
+                        className="search-clear"
+                        aria-label={t('Effacer la recherche')}
+                        onClick={() => {
+                          setSearch('');
+                          setPage(1);
+                          searchRef.current?.focus();
+                        }}
+                      >
+                        {t('Effacer ×')}
+                      </button>
+                    )}
+                  </div>
+                  <div className="page-size-control sort-control">
+                    <span className="library-control-label">
+                      {t('Trier par')}
+                      <Tooltip
+                        content={t(
+                          'Dates Steam pour les mods Workshop ; dernière modification de mod.info pour les projets locaux. Les dates inconnues apparaissent à la fin.',
+                        )}
+                      >
+                        <button
+                          type="button"
+                          className="library-control-help"
+                          aria-label={t('Informations techniques') + ' — ' + t('Trier par')}
+                        >
+                          <span aria-hidden="true">?</span>
+                        </button>
+                      </Tooltip>
+                    </span>
+                    <Select
+                      label={t('Trier par')}
+                      value={effectiveSort}
+                      onValueChange={changeSort}
+                      options={[
+                        {
+                          value: 'save',
+                          label: t('Ordre de la sauvegarde'),
+                          disabled: tab !== 'active' || !data?.selected,
+                        },
+                        { value: 'updated-desc', label: t('Mise à jour : plus récentes') },
+                        { value: 'updated-asc', label: t('Mise à jour : plus anciennes') },
+                        { value: 'name-asc', label: t('Nom : A → Z') },
+                        { value: 'name-desc', label: t('Nom : Z → A') },
+                      ]}
+                    />
+                  </div>
+                  <label className="page-size-control">
+                    {t('Éléments par page')}
+                    <Select
+                      label={t('Éléments par page')}
+                      value={String(pageSize)}
+                      onValueChange={changePageSize}
+                      options={PAGE_SIZES.map((size) => ({
+                        value: String(size),
+                        label: String(size),
+                      }))}
+                    />
+                  </label>
+                  <div className="view-switch" role="group" aria-label={t('Mode d’affichage')}>
                     <button
                       type="button"
-                      className="search-clear"
-                      aria-label={t('Effacer la recherche')}
-                      onClick={() => {
-                        setSearch('');
-                        setPage(1);
-                        searchRef.current?.focus();
-                      }}
+                      aria-pressed={view === 'cards'}
+                      onClick={() => changeView('cards')}
                     >
-                      {t('Effacer ×')}
+                      {t('▦ Cartes')}
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      aria-pressed={view === 'list'}
+                      onClick={() => changeView('list')}
+                    >
+                      {t('☰ Liste')}
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="toolbar">
-                <span>
-                  {loading
-                    ? t('Analyse des fichiers locaux…')
-                    : t('{{parents}} éléments parents · {{ids}} IDs correspondant au filtre', {
-                        parents: parentGroups.length,
-                        ids: filtered.length,
-                      })}
-                </span>
-                <label className="page-size-control sort-control">
-                  {t('Trier par')}
-                  <Select
-                    label={t('Trier par')}
-                    value={effectiveSort}
-                    onValueChange={changeSort}
-                    options={[
-                      {
-                        value: 'save',
-                        label: t('Ordre de la sauvegarde'),
-                        disabled: tab !== 'active' || !data?.selected,
-                      },
-                      { value: 'updated-desc', label: t('Mise à jour : plus récentes') },
-                      { value: 'updated-asc', label: t('Mise à jour : plus anciennes') },
-                      { value: 'name-asc', label: t('Nom : A → Z') },
-                      { value: 'name-desc', label: t('Nom : Z → A') },
-                    ]}
-                  />
-                </label>
-                <label className="page-size-control">
-                  {t('Éléments par page')}
-                  <Select
-                    label={t('Éléments par page')}
-                    value={String(pageSize)}
-                    onValueChange={changePageSize}
-                    options={PAGE_SIZES.map((size) => ({
-                      value: String(size),
-                      label: String(size),
-                    }))}
-                  />
-                </label>
-                <div className="view-switch" role="group" aria-label={t('Mode d’affichage')}>
-                  <button
-                    type="button"
-                    aria-pressed={view === 'cards'}
-                    onClick={() => changeView('cards')}
-                  >
-                    {t('▦ Cartes')}
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={view === 'list'}
-                    onClick={() => changeView('list')}
-                  >
-                    {t('☰ Liste')}
-                  </button>
-                </div>
-                <Tooltip
-                  content={t(
-                    'Activer un identifiant de mod dans la sauvegarde sélectionnée, après vérification.',
-                  )}
-                >
-                  <button
-                    className="button primary"
-                    disabled={loading || !data?.selected}
-                    onClick={() => openAdd()}
-                  >
-                    {t('＋ Ajouter un mod')}
-                  </button>
-                </Tooltip>
-                {tab === 'active' && (
-                  <button
-                    className="button"
-                    disabled={loading || !data?.selected || data.active.length < 2}
-                    onClick={() => {
-                      if (!data?.selected) return;
-                      setOrderEditor({
-                        saveId: data.selected,
-                        revision: data.revision,
-                        ids: [...data.active],
-                        name:
-                          data.saves.find((save) => save.id === data.selected)?.name ||
-                          data.selected,
-                      });
-                    }}
-                  >
-                    {t('↕ Modifier l’ordre')}
-                  </button>
-                )}
                 {checked.size > 0 && (
-                  <button className="button destructive" onClick={() => setConfirm(true)}>
+                  <button
+                    className="button destructive library-selection-action"
+                    disabled={loading || !data?.revision}
+                    onClick={() => setConfirm(true)}
+                  >
                     {t('Retirer {{count}} ID(s) de la sauvegarde', { count: checked.size })}
                   </button>
                 )}
@@ -880,22 +955,9 @@ function App() {
                   {t('Lecture de vos sauvegardes et de votre bibliothèque locale…')}
                 </div>
               )}
-              <p className="grouping-note">
-                {tab === 'active' && effectiveSort === 'save'
-                  ? t(
-                      'Un Workshop ID par ligne ou carte, avec tous ses sous-mods. Les tags affichent leur état et leur position dans la sauvegarde. Les parents sont triés par leur premier sous-mod actif ; consultez l’éditeur pour la séquence complète.',
-                    )
-                  : t(
-                      'Un parent par ligne ou carte. Tous ses sous-mods installés restent visibles, même désactivés. Cliquez sur un tag pour ouvrir sa fiche.',
-                    )}
+              <p className="grouping-note library-control-hint">
+                {t('Choisissez un sous-mod pour consulter sa fiche.')}
               </p>
-              {(effectiveSort === 'updated-asc' || effectiveSort === 'updated-desc') && (
-                <p className="grouping-note">
-                  {t(
-                    'Dates Steam pour les mods Workshop ; dernière modification de mod.info pour les projets locaux. Les dates inconnues apparaissent à la fin.',
-                  )}
-                </p>
-              )}
               <ParentLibrary
                 all={all}
                 groups={shownGroups}
@@ -1006,6 +1068,62 @@ function App() {
             }}
           />
         )}
+        {changingCollection && (
+          <CollectionChangeDialog
+            action={changingCollection.action}
+            source={changingCollection.source}
+            existingNames={(data?.saves || [])
+              .filter((source) => source.kind === 'collection')
+              .map((source) => source.name)}
+            onClose={() => setChangingCollection(undefined)}
+            onCompleted={async (result) => {
+              const { source, action } = changingCollection;
+              contexts.current = collectionContexts(
+                contexts.current,
+                source.id,
+                result.sourceId,
+                action,
+                { tab, search, page },
+              );
+              if (action === 'rename') dispatchWrite({ type: 'idle', id: source.id });
+              reportWrite({ id: result.sourceId, name: result.name, kind: 'collection' }, 'saved', {
+                backup: result.backup,
+                silent: true,
+              });
+              setNotice(undefined);
+              setChecked(new Set());
+              setDetail(undefined);
+              setSelectedSave(result.sourceId);
+              setData((current) => {
+                if (!current) return current;
+                const previous = current.saves.find((item) => item.id === source.id);
+                const updated: Save = {
+                  ...(previous || { mode: 'Collection', modified: new Date().toISOString() }),
+                  id: result.sourceId,
+                  name: result.name,
+                  kind: 'collection',
+                };
+                return {
+                  ...current,
+                  selected: result.sourceId,
+                  revision: '',
+                  saves:
+                    action === 'rename'
+                      ? current.saves.map((item) => (item.id === source.id ? updated : item))
+                      : [...current.saves, updated],
+                };
+              });
+              setChangingCollection(undefined);
+              await load(result.sourceId, false, false, { retainSelectionOnError: true });
+              setChangedCollection({
+                action,
+                from: source.name,
+                name: result.name,
+                backup: result.backup,
+              });
+            }}
+          />
+        )}
         {transferOpen && (
           <TransferDialog
             save={
@@ -1021,6 +1139,7 @@ function App() {
             onClose={() => setTransferOpen(false)}
             onProfileSaved={(profile) => {
               setDeletedCollection(undefined);
+              setChangedCollection(undefined);
               const source = data?.saves.find((source) => source.id === data.selected);
               if (source?.kind === 'collection' && source.name === profile.name && profile.replaced)
                 reportWrite(source, 'saved', { backup: profile.backup, silent: true });
@@ -1080,7 +1199,7 @@ function App() {
               setChecked(new Set([mod.id]));
               setConfirm(true);
             }}
-            onAdd={data?.selected ? openAdd : undefined}
+            onAdd={data?.selected && data.revision ? openAdd : undefined}
             onOpenFolder={async (mod) => {
               if (!mod.folderKey)
                 throw Error(t('Dossier du mod indisponible. Actualisez la bibliothèque.'));
@@ -1131,6 +1250,8 @@ function App() {
         {writes.toastId &&
           writes.byId[writes.toastId] &&
           !deletingCollection &&
+          !changingCollection &&
+          !changedCollection &&
           !deletedCollection &&
           !adding &&
           !orderEditor &&
@@ -1145,6 +1266,7 @@ function App() {
           )}
         {deletedCollection &&
           !deletingCollection &&
+          !changingCollection &&
           !adding &&
           !orderEditor &&
           !confirm &&
@@ -1153,6 +1275,19 @@ function App() {
             <CollectionDeletedNotice
               entry={deletedCollection}
               onDismiss={() => setDeletedCollection(undefined)}
+            />
+          )}
+        {changedCollection &&
+          !changingCollection &&
+          !deletingCollection &&
+          !adding &&
+          !orderEditor &&
+          !confirm &&
+          !transferOpen &&
+          !detail && (
+            <CollectionChangeNotice
+              entry={changedCollection}
+              onDismiss={() => setChangedCollection(undefined)}
             />
           )}
       </div>

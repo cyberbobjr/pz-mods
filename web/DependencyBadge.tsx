@@ -1,4 +1,4 @@
-import { useI18n } from './i18n';
+import { useSourceI18n } from './source-context';
 import { Tooltip } from './ui/Tooltip';
 
 export function DependencyBadge({
@@ -10,7 +10,7 @@ export function DependencyBadge({
   activeCount: number;
   onClick: () => void;
 }) {
-  const { t } = useI18n();
+  const { t } = useSourceI18n();
   if (!count) return null;
   return (
     <Tooltip

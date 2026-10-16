@@ -3,6 +3,9 @@ import {
   insertProfile,
   profileExists,
   deleteProfile,
+  renameProfile,
+  duplicateProfile,
+  validateProfileName,
   type ProfilePreview,
 } from '../domain/profiles.js';
 import type { LibraryPort } from './service.js';
@@ -26,11 +29,15 @@ export interface ProfileMutationPort {
   profileUserDir(): Promise<string>;
   withProfileMutation<T>(operation: (userDir: string) => Promise<T>): Promise<T>;
 }
+export interface CollectionIdentityPort {
+  collectionId(contextId: string, name: string): string;
+}
 
 export class ProfileService {
   constructor(
     private readonly library: LibraryPort & ProfileMutationPort,
     private readonly store: ProfileStorePort,
+    private readonly identities?: CollectionIdentityPort,
   ) {}
   private async source(saveId: string, revision: string) {
     await this.library.saves();
@@ -99,6 +106,51 @@ export class ProfileService {
           'Impossible d’enregistrer le profil. Vérifie les chemins et actualise l’aperçu.',
         );
       return { backup: result.backup, deletedId: saveId };
+    });
+  }
+  rename(saveId: string, revision: string, name: string) {
+    return this.changeName(saveId, revision, name, 'rename');
+  }
+  duplicate(saveId: string, revision: string, name: string) {
+    return this.changeName(saveId, revision, name, 'duplicate');
+  }
+  private async changeName(
+    saveId: string,
+    revision: string,
+    value: string,
+    operation: 'rename' | 'duplicate',
+  ) {
+    if (typeof saveId !== 'string' || !/^collection:[a-f0-9]{24}$/.test(saveId))
+      throw Error('Seule une collection locale peut être modifiée.');
+    if (typeof revision !== 'string' || !revision)
+      throw Error('Requête de modification de collection invalide.');
+    const name = validateProfileName(value);
+    const identities = this.identities;
+    if (!identities) throw Error('La gestion des collections locales est indisponible.');
+    return this.library.withProfileMutation(async (userDir) => {
+      const source = (await this.library.saves()).find(
+        (item) => item.id === saveId && item.kind === 'collection',
+      );
+      if (!source) throw Error('Collection locale introuvable. Actualise la liste.');
+      const saved = await this.library.readSave(saveId);
+      if (saved.kind !== 'collection')
+        throw Error('Seule une collection locale peut être modifiée.');
+      const snapshot = await this.store.read(userDir);
+      if (saved.revision !== revision || snapshot.revision !== revision)
+        throw Error('Le fichier de profils a changé. Vérifie à nouveau l’aperçu.');
+      const transform = operation === 'rename' ? renameProfile : duplicateProfile;
+      const next = transform(snapshot.text, snapshot.exists, source.name, name);
+      const sourceId = identities.collectionId(snapshot.contextId, name);
+      const result = await this.store.write(userDir, revision, next, async () => {
+        const current = await this.library.readSave(saveId);
+        if (current.kind !== 'collection' || current.revision !== revision)
+          throw Error('Le fichier de profils a changé. Vérifie à nouveau l’aperçu.');
+      });
+      if (!result.backup)
+        throw Error(
+          'Impossible d’enregistrer le profil. Vérifie les chemins et actualise l’aperçu.',
+        );
+      return { backup: result.backup, name, sourceId };
     });
   }
 }

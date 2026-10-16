@@ -78,6 +78,10 @@ Les dates, boutons, messages de diagnostic et contrôles d’ordre sont traduits
 
 Les menus déroulants et infobulles utilisent des composants React Radix personnalisés : navigation au clavier, sélection visible, fermeture avec Échap et animations d’ouverture. Les panneaux, onglets et boutons partagent les couleurs du thème et des transitions discrètes. Le réglage système **réduire les animations** est respecté.
 
+La barre de bibliothèque sépare les actions **Ajouter un mod / Modifier l’ordre** des réglages d’affichage. La recherche, le tri, la taille des pages et le choix cartes/liste sont alignés dans un panneau commun, qui se réorganise sur les petits écrans. Tous ces réglages conservent leurs préférences de navigation.
+
+![Barre de bibliothèque : actions regroupées, recherche et réglages d’affichage alignés](docs/screenshot-library-toolbar.png)
+
 ### Retrouver sa navigation
 
 La page ouverte (bibliothèque ou configuration), la sauvegarde sélectionnée, la vue de bibliothèque, la recherche et le numéro de page sont mémorisés. Chaque vue retrouve sa propre recherche et sa page **pour chaque sauvegarde**. Le mode cartes/tableau, le tri, le nombre d’éléments par page, la langue, le thème et le repli de la barre latérale sont également conservés.
@@ -225,6 +229,17 @@ Un indicateur affiche **Enregistrement…**, puis **Modifications enregistrées*
 ![Confirmation d’enregistrement d’une collection fictive avec heure et accès au chemin de la copie de sécurité](docs/screenshot-collection-saved.png)
 
 **La séquence enregistrée dans un profil n’est pas une garantie de chargement dans le jeu** : Project Zomboid recalcule l’ordre à l’activation du profil.
+
+### Dupliquer ou renommer une collection locale
+
+Sélectionner une collection puis utiliser **Dupliquer** ou **Renommer** dans le panneau du sélecteur. Saisir le nom souhaité et confirmer que le jeu est fermé. Un nom déjà utilisé est refusé : aucune collection existante n’est écrasée.
+
+- **Dupliquer** crée une nouvelle collection avec les mêmes identifiants de mods, dans la même séquence, tout en conservant l’originale.
+- **Renommer** change uniquement le nom de la collection. La sélection et les préférences de navigation suivent son nouveau nom.
+
+La collection créée ou renommée devient la sélection courante et une confirmation affiche le résultat ainsi que le chemin de la copie de secours. Ces opérations conservent les autres collections, les favoris, les identifiants qualifiés, les accents et les fins de ligne. Comme les autres modifications de profils, elles vérifient la révision du fichier et créent une copie complète dans `backups/pz-mods/profiles/` avant l’écriture.
+
+![Duplication d’une collection fictive avec choix du nouveau nom et copie de sécurité](docs/screenshot-duplicate-collection.png)
 
 ### Supprimer une collection locale
 

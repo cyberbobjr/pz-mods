@@ -1,4 +1,7 @@
 {
+  "DANS LA SAUVEGARDE": "DANS LA COLLECTION",
+  "HORS SAUVEGARDE": "HORS COLLECTION",
+  "Déclaré comme prérequis par {{count}} mod(s), dont {{active}} actif(s) dans cette sauvegarde.": "Déclaré comme prérequis par {{count}} mod(s), dont {{active}} actif(s) dans cette collection.",
   "ORDRE DE LA SAUVEGARDE": "ORDRE DE LA COLLECTION",
   "Ferme Project Zomboid avant de modifier une sauvegarde.": "Ferme Project Zomboid avant de modifier une collection.",
   "Activer dans la sauvegarde": "Activer dans la collection",

@@ -133,3 +133,39 @@ export function deleteProfile(text: string, fileExists: boolean, name: string) {
   if (!target) throw Error('Collection locale introuvable. Actualise la liste.');
   return text.slice(0, target.start) + text.slice(target.end);
 }
+
+export function renameProfile(text: string, fileExists: boolean, name: string, value: string) {
+  if (validateProfileName(name) !== name) throw Error('Nom de profil invalide.');
+  const nextName = validateProfileName(value);
+  if (nextName === name) throw Error('Le nouveau nom doit être différent du nom actuel.');
+  const lines = readProfileLines(text, fileExists);
+  const [target] = targetLines(lines.slice(1), name);
+  if (!target) throw Error('Collection locale introuvable. Actualise la liste.');
+  if (targetLines(lines.slice(1), nextName).length)
+    throw Error('Une collection porte déjà ce nom. Choisis un autre nom.');
+  return (
+    text.slice(0, target.start) +
+    nextName +
+    target.content.slice(target.content.indexOf(':')) +
+    target.ending +
+    text.slice(target.end)
+  );
+}
+
+export function duplicateProfile(text: string, fileExists: boolean, name: string, value: string) {
+  if (validateProfileName(name) !== name) throw Error('Nom de profil invalide.');
+  const nextName = validateProfileName(value);
+  const lines = readProfileLines(text, fileExists);
+  const [target] = targetLines(lines.slice(1), name);
+  if (!target) throw Error('Collection locale introuvable. Actualise la liste.');
+  if (targetLines(lines.slice(1), nextName).length)
+    throw Error('Une collection porte déjà ce nom. Choisis un autre nom.');
+  const ending = target.ending || lines.find((line) => line.ending)?.ending || '\n';
+  return (
+    text +
+    (text.endsWith('\n') ? '' : ending) +
+    nextName +
+    target.content.slice(target.content.indexOf(':')) +
+    ending
+  );
+}
