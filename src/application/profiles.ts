@@ -7,7 +7,13 @@ import {
 import type { LibraryPort } from './service.js';
 
 export interface ProfileStorePort {
-  read(userDir: string): Promise<{ text: string; exists: boolean; revision: string }>;
+  read(userDir: string): Promise<{
+    text: string;
+    exists: boolean;
+    revision: string;
+    contextId: string;
+    modified?: string;
+  }>;
   write(
     userDir: string,
     revision: string,

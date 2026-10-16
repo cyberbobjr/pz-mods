@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useI18n } from './i18n';
+import { useSourceI18n } from './source-context';
 import { translateError } from './messages';
 import { Tooltip } from './ui/Tooltip';
 import './local-profile.css';
@@ -32,7 +32,7 @@ async function request<T>(url: string, payload: unknown): Promise<T> {
 }
 
 export function LocalProfileExport({ save, disabled = false, onBusyChange }: Props) {
-  const { t } = useI18n();
+  const { t } = useSourceI18n();
   const [name, setName] = useState(save.name.slice(0, 128));
   const [preview, setPreview] = useState<Preview>();
   const [phase, setPhase] = useState<'idle' | 'preview' | 'export'>('idle');
@@ -161,7 +161,7 @@ export function LocalProfileExport({ save, disabled = false, onBusyChange }: Pro
       </form>
       {error && (
         <div className="alert error" role="alert">
-          {translateError(error)}
+          {translateError(error, t)}
         </div>
       )}
       {preview && (

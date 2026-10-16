@@ -1,4 +1,4 @@
-import { useI18n } from './i18n';
+import { useSourceI18n } from './source-context';
 import { contentFallback } from './messages';
 import type { Mod } from '../src/domain/mods';
 import type { ParentGroup } from './parent-groups';
@@ -24,7 +24,7 @@ type Props = {
 const plain = (text: string) => text.replace(/\[\/?[^\]]+\]/g, '').replace(/<[^>]*>/g, '');
 
 export function ParentLibrary(props: Props) {
-  const { t } = useI18n();
+  const { t } = useSourceI18n();
   function content(group: ParentGroup) {
     const first = group.members[0];
     const requiredBy = parentDependents(group, props.all);

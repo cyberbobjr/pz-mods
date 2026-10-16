@@ -44,13 +44,13 @@ export function contentFallback(text: string, t: Translator) {
   return text;
 }
 
-export function translateError(message: unknown) {
+export function translateError(message: unknown, translator: Translator = translateCurrent) {
   const text = typeof message === 'string' ? message : 'Erreur inattendue.';
   const blocked = text.match(
     /^Retrait bloqué : prérequis utilisés par (.+)\. Retire aussi ces mods si nécessaire\.$/,
   );
   if (blocked)
-    return translateCurrent(
+    return translator(
       'Retrait bloqué : prérequis utilisés par {{mods}}. Retire aussi ces mods si nécessaire.',
       { mods: blocked[1] },
     );
@@ -59,7 +59,7 @@ export function translateError(message: unknown) {
     const constraints = [
       ...order[1].matchAll(/([^\s]+) doit être chargé (avant|après) ([^\s]+)\./g),
     ];
-    return translateCurrent('Nouvelle contrainte d’ordre non respectée : {{constraints}}', {
+    return translator('Nouvelle contrainte d’ordre non respectée : {{constraints}}', {
       constraints: constraints.length
         ? constraints
             .map((match) =>
@@ -70,16 +70,16 @@ export function translateError(message: unknown) {
                   kind: match[2] === 'avant' ? 'before' : 'after',
                   message: '',
                 },
-                translateCurrent,
+                translator,
               ),
             )
             .join(' ')
-        : translateCurrent('Vérifiez les contraintes indiquées dans l’éditeur.'),
+        : translator('Vérifiez les contraintes indiquées dans l’éditeur.'),
     });
   }
   const key =
     Object.entries(english).find(
       ([source, value]) => value === text && !source.includes('{{'),
     )?.[0] || text;
-  return translateCurrent(key);
+  return translator(key);
 }

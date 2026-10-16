@@ -43,13 +43,20 @@ export class LocalProfileStore implements ProfileStorePort {
       if (bytes.length > MAX_PROFILE_BYTES) throw Error('unsupported');
       const text = decoder.decode(bytes);
       const identity = `${rootIdentity}:${stat.dev}:${stat.ino}:${stat.mtimeMs}:${stat.ctimeMs}`;
-      return { text, exists: true, revision: revisionFor(file, identity, bytes) };
+      return {
+        text,
+        exists: true,
+        revision: revisionFor(file, identity, bytes),
+        contextId: revisionFor(file, rootIdentity, new Uint8Array()),
+        modified: stat.mtime.toISOString(),
+      };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT')
         return {
           text: '',
           exists: false,
           revision: revisionFor(file, `${rootIdentity}:missing`, new Uint8Array()),
+          contextId: revisionFor(file, rootIdentity, new Uint8Array()),
         };
       throw Error('Impossible de lire le fichier de profils dans un format UTF-8 compatible.', {
         cause: error,

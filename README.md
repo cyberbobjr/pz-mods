@@ -4,7 +4,7 @@
 
 **Votre arsenal, sous contrôle.**
 
-Un gestionnaire local pour explorer, diagnostiquer et organiser les mods de vos sauvegardes solo de **Project Zomboid**.
+Un gestionnaire local pour explorer, diagnostiquer et organiser les mods de vos sauvegardes solo et collections locales de **Project Zomboid**.
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white)
@@ -90,7 +90,7 @@ Ces préférences restent dans le stockage local du navigateur, pour la même ad
 
 - **Windows**, avec Project Zomboid installé via Steam.
 - **Node.js 24 ou plus récent**, avec npm.
-- Une sauvegarde **solo** contenant `mods.txt`.
+- Une sauvegarde **solo** contenant `mods.txt`, ou une collection locale enregistrée dans `Lua/pz_modlist_settings.cfg`.
 
 Aucune clé API Steam n’est nécessaire.
 
@@ -209,6 +209,18 @@ WorkshopItems=1234567890;2345678901
 Exemple fictif : trois sous-mods peuvent dépendre de deux parents Workshop. Les deux listes ne se correspondent pas par position. Le manifeste JSON conserve les associations connues, les IDs d’origine et les avertissements.
 
 Pour reprendre cette liste : ouvrir **Importer / exporter → Importer un serveur**, coller les lignes ou charger le fichier, puis cliquer sur **Analyser le contenu**. Vérifier l’aperçu avant de télécharger les exports, de lancer les abonnements ou de créer une collection. Les opérations Steam sont exécutées par lots de dix, avec un bilan des réussites, abonnements déjà actifs et échecs. Les ajouts à une collection sont confirmés par relecture de son contenu.
+
+### Éditer une collection locale existante
+
+Le sélecteur principal distingue **Sauvegardes** et **Collections**. Les collections proviennent du fichier `<racine utilisateur Zomboid>/Lua/pz_modlist_settings.cfg` ; leur nom est celui du profil enregistré dans le jeu. Le chemin suit la racine définie dans **Configuration**. Les favoris ne sont pas proposés comme collection.
+
+![Sélecteur groupant les sauvegardes solo et les collections locales, avec des données fictives](docs/screenshot-source-selector.png)
+
+Choisir une collection pour consulter ses mods actifs, ses mods manquants et son diagnostic, puis utiliser les mêmes commandes que pour une sauvegarde : **ajouter un modId**, retirer des sous-mods ou éditer la séquence des IDs. La sélection, les filtres et la pagination sont mémorisés séparément pour chaque sauvegarde ou collection. Une collection ne possède pas de version de sauvegarde : les diagnostics qui nécessitent cette information ne peuvent pas être garantis.
+
+Les modifications portent uniquement sur le profil sélectionné ; elles ne modifient aucune sauvegarde et ne souscrivent à aucun abonnement Steam. Le jeu doit être fermé. Chaque écriture vérifie que le fichier n’a pas changé, crée une copie de sécurité et conserve les favoris, les autres profils, les accents et les fins de ligne. Après une modification des profils dans le jeu, cliquer sur **Actualiser**.
+
+**La séquence enregistrée dans un profil n’est pas une garantie de chargement dans le jeu** : Project Zomboid recalcule l’ordre à l’activation du profil.
 
 ### Créer un profil de collection locale
 

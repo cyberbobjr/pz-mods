@@ -2,7 +2,7 @@ import { Tooltip } from './ui/Tooltip';
 import type { TransferWarning, TransferResult as TransferPreview } from '../src/domain/transfers';
 import { useEffect, useState } from 'react';
 import { Dialog } from './Dialog';
-import { useI18n } from './i18n';
+import { useSourceI18n } from './source-context';
 import { translateError } from './messages';
 import { LocalProfileExport } from './LocalProfileExport';
 
@@ -40,7 +40,7 @@ function download(content: string, filename: string, type: string) {
 }
 
 export function TransferDialog({ save, onClose }: Props) {
-  const { t } = useI18n();
+  const { t } = useSourceI18n();
   const [tab, setTab] = useState<'export' | 'import'>(save ? 'export' : 'import');
   const [exportPreview, setExportPreview] = useState<TransferPreview>();
   const [importPreview, setImportPreview] = useState<TransferPreview>();
@@ -238,7 +238,7 @@ export function TransferDialog({ save, onClose }: Props) {
       </div>
       {error && (
         <div className="alert error" role="alert">
-          {error}
+          {translateError(error, t)}
         </div>
       )}
       {notice && (
@@ -605,7 +605,7 @@ export function TransferDialog({ save, onClose }: Props) {
                   <ul>
                     {result.failed.map((failure, index) => (
                       <li key={index}>
-                        <code>{failure.id}</code> — {translateError(failure.error)}
+                        <code>{failure.id}</code> — {translateError(failure.error, t)}
                       </li>
                     ))}
                   </ul>

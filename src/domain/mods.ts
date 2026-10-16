@@ -24,6 +24,7 @@ export type WorkshopDetail = {
   cacheStale?: boolean;
 };
 export type Save = {
+  kind?: 'save' | 'collection';
   id: string;
   name: string;
   mode: string;

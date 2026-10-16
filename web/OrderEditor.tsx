@@ -5,7 +5,7 @@ import { normalize } from '../src/domain/mods';
 import { Dialog } from './Dialog';
 import { loadPosition } from './load-order';
 import { orderDraftReducer } from './order-draft';
-import { useI18n } from './i18n';
+import { useSourceI18n } from './source-context';
 import { translateOrderViolation, translateError } from './messages';
 
 export type OrderValidation = {
@@ -35,7 +35,7 @@ function PositionField({
   name: string;
   onMove: (position: number) => void;
 }) {
-  const { t } = useI18n();
+  const { t } = useSourceI18n();
   const [value, setValue] = useState(String(position));
   useEffect(() => setValue(String(position)), [position]);
   function commit() {
@@ -62,7 +62,7 @@ function PositionField({
 }
 
 export function OrderEditor(props: Props) {
-  const { t, language } = useI18n();
+  const { t, language, sourceKind } = useSourceI18n();
   const [draft, dispatch] = useReducer(orderDraftReducer, {
     past: [],
     ids: [...props.ids],
@@ -203,6 +203,13 @@ export function OrderEditor(props: Props) {
         </button>
       </header>
       <div className="order-editor-content">
+        {sourceKind === 'collection' && (
+          <p className="collection-order-note">
+            {t(
+              'Le jeu peut réordonner les collections et leurs mods. L’ordre enregistré ici ne garantit pas l’ordre de chargement d’une partie.',
+            )}
+          </p>
+        )}
         {stage === 'discard' ? (
           <section className="order-review">
             <h3>{t('Abandonner le brouillon ?')}</h3>
@@ -435,7 +442,7 @@ export function OrderEditor(props: Props) {
                 <p>{t('Vérification des prérequis et contraintes de chargement…')}</p>
               ) : validationError ? (
                 <div role="alert">
-                  <p>{translateError(validationError)}</p>
+                  <p>{translateError(validationError, t)}</p>
                   <button className="button" onClick={() => setRetry((value) => value + 1)}>
                     {t('Réessayer')}
                   </button>
@@ -476,7 +483,7 @@ export function OrderEditor(props: Props) {
             </div>
             {saveError && (
               <div className="alert error" role="alert">
-                {translateError(saveError)}
+                {translateError(saveError, t)}
               </div>
             )}
           </>

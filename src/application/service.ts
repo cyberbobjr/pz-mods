@@ -11,7 +11,9 @@ import { previewAddition, validateAddedId } from '../domain/additions.js';
 export interface LibraryPort {
   scan(version?: string, force?: boolean): Promise<Mod[]>;
   saves(): Promise<Save[]>;
-  readSave(id: string): Promise<{ ids: string[]; revision: string; version?: string }>;
+  readSave(
+    id: string,
+  ): Promise<{ ids: string[]; revision: string; version?: string; kind?: Save['kind'] }>;
   remove(id: string, ids: string[], revision: string): Promise<string>;
   reorder(id: string, ids: string[], revision: string): Promise<string>;
   add(id: string, rawId: string, revision: string): Promise<string>;
@@ -37,6 +39,7 @@ export class ModService {
     const save = selected ? await this.library.readSave(selected) : undefined;
     const mods = await this.library.scan(save?.version, refresh);
     const active = save?.ids || [];
+    const status = await this.library.status();
     return {
       saves,
       selected,
@@ -45,7 +48,14 @@ export class ModService {
       revision: save?.revision,
       version: save?.version,
       issues: analyse(mods, active, save?.version),
-      status: await this.library.status(),
+      status,
+      collectionWarning:
+        status &&
+        typeof status === 'object' &&
+        'collectionsError' in status &&
+        typeof status.collectionsError === 'string'
+          ? status.collectionsError
+          : undefined,
     };
   }
   async remove(saveId: string, ids: string[], revision: string) {

@@ -6,6 +6,7 @@ export type ProfileFragment = {
   downloadText: string;
 };
 export type ProfilePreview = ProfileFragment & { profileRevision: string; exists: boolean };
+export type ProfileCollection = { name: string; ids: string[] };
 
 function invalidCharacter(text: string) {
   return [...text].some((character) => {
@@ -82,6 +83,28 @@ function targetLines(lines: ProfileLine[], name: string) {
 
 export function profileExists(text: string, fileExists: boolean, name: string) {
   return targetLines(readProfileLines(text, fileExists), validateProfileName(name)).length === 1;
+}
+
+/** Native profile collections only: favorite IDs and unrelated lines never leave this parser. */
+export function parseProfileCollections(text: string, fileExists: boolean): ProfileCollection[] {
+  const profiles: ProfileCollection[] = [];
+  const names = new Set<string>();
+  for (const line of readProfileLines(text, fileExists).slice(1)) {
+    const separator = line.content.indexOf(':');
+    if (separator < 0) continue;
+    const name = line.content.slice(0, separator);
+    if (name.toLowerCase().startsWith('!fav!')) continue;
+    if (validateProfileName(name) !== name)
+      throw Error('Format du fichier de profils non pris en charge.');
+    if (names.has(name)) throw Error('Plusieurs profils portent ce nom. Choisis un autre nom.');
+    names.add(name);
+    const ids = line.content
+      .slice(separator + 1)
+      .split(';')
+      .filter((value) => value.trim());
+    profiles.push({ name, ids: buildProfileFragment(name, ids).ids });
+  }
+  return profiles;
 }
 
 export function insertProfile(

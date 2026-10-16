@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import type { Issue, LoadOrderViolation } from '../src/domain/mods';
 import { Dialog } from './Dialog';
-import { useI18n } from './i18n';
+import { useSourceI18n } from './source-context';
 import { translateError, translateIssue, translateOrderViolation } from './messages';
 import { Tooltip } from './ui/Tooltip';
 import './add-mod.css';
@@ -32,7 +32,7 @@ async function post<T>(url: string, body: unknown): Promise<T> {
 }
 
 export function AddModDialog({ save, initialId = '', onClose, onAdded }: Props) {
-  const { t } = useI18n();
+  const { t } = useSourceI18n();
   const [id, setId] = useState(initialId);
   const [preview, setPreview] = useState<Preview>();
   const [phase, setPhase] = useState<'idle' | 'checking' | 'adding'>('idle');
@@ -134,7 +134,7 @@ export function AddModDialog({ save, initialId = '', onClose, onAdded }: Props) 
       </p>
       {error && (
         <div className="alert error" role="alert">
-          {translateError(error)}
+          {translateError(error, t)}
         </div>
       )}
       {completion ? (

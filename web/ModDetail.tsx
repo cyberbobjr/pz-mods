@@ -1,6 +1,6 @@
 import { Tooltip } from './ui/Tooltip';
 import { translateIssue, translateError, contentFallback } from './messages';
-import { useI18n } from './i18n';
+import { useSourceI18n } from './source-context';
 import { useState } from 'react';
 import type { Mod, Issue } from '../src/domain/mods';
 import { Dialog } from './Dialog';
@@ -51,7 +51,7 @@ export function ModDetail({
   onOpenFolder,
   onClose,
 }: Props) {
-  const { t, language } = useI18n();
+  const { t, language } = useSourceI18n();
   const [tab, setTab] = useState<'description' | 'compatibility'>('description');
   const [openingFolder, setOpeningFolder] = useState(false);
   const [folderError, setFolderError] = useState<{ source: string; message: string }>();

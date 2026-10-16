@@ -18,23 +18,26 @@ import { ExplorerService } from '../application/explorer.js';
 import { WindowsExplorer } from './windows-explorer.js';
 import { ProfileService } from '../application/profiles.js';
 import { LocalProfileStore } from './profile-store.js';
+import { ProfileLibrary } from './profile-library.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const app = Fastify({ logger: false, bodyLimit: 1024 * 1024 });
-const library = new LocalLibrary();
-await library.init();
+const localLibrary = new LocalLibrary();
+await localLibrary.init();
 const settings = new SettingsService(
   new SettingsStore(path.join(root, '.cache/settings.json')),
-  library,
+  localLibrary,
 );
 await settings.initialize();
+const profileStore = new LocalProfileStore();
+const library = new ProfileLibrary(localLibrary, profileStore);
 const service = new ModService(
   library,
   new SteamWorkshop({ cacheFile: path.join(root, '.cache/workshop.json') }),
   new PosterCache({ directory: path.join(root, '.cache/posters') }),
 );
 const transfers = new TransferService(library);
-const explorer = new ExplorerService(library, new WindowsExplorer());
-const profiles = new ProfileService(library, new LocalProfileStore());
+const explorer = new ExplorerService(localLibrary, new WindowsExplorer());
+const profiles = new ProfileService(library, profileStore);
 const steamAccount = new SteamAccount(path.join(root, '.cache/steam-profile'));
 const steamActions = new SteamActionsService(steamAccount, new SteamCatalog());
 app.addHook('onClose', async () => steamAccount.close());

@@ -2,7 +2,7 @@ import * as SelectPrimitive from '@radix-ui/react-select';
 import { useRef, useState } from 'react';
 import './components.css';
 
-export type SelectOption = { value: string; label: string; disabled?: boolean };
+export type SelectOption = { value: string; label: string; disabled?: boolean; group?: string };
 export type SelectProps = {
   value: string;
   onValueChange: (value: string) => void;
@@ -41,6 +41,22 @@ export function Select({
   const [open, setOpen] = useState(false);
   // Keep popups inside custom dialogs so their focus management remains scoped.
   const container = trigger.current?.closest<HTMLElement>('[role="dialog"]') || undefined;
+  const groups = new Map<string | undefined, SelectOption[]>();
+  for (const option of options)
+    groups.set(option.group, [...(groups.get(option.group) || []), option]);
+  const item = (option: SelectOption) => (
+    <SelectPrimitive.Item
+      key={option.value}
+      value={option.value}
+      disabled={option.disabled}
+      className="ui-select-option"
+    >
+      <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+      <SelectPrimitive.ItemIndicator className="ui-select-indicator" aria-hidden="true">
+        ✓
+      </SelectPrimitive.ItemIndicator>
+    </SelectPrimitive.Item>
+  );
   return (
     <SelectPrimitive.Root
       value={value}
@@ -73,19 +89,18 @@ export function Select({
             <Chevron up />
           </SelectPrimitive.ScrollUpButton>
           <SelectPrimitive.Viewport className="ui-select-viewport">
-            {options.map((option) => (
-              <SelectPrimitive.Item
-                key={option.value}
-                value={option.value}
-                disabled={option.disabled}
-                className="ui-select-option"
-              >
-                <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
-                <SelectPrimitive.ItemIndicator className="ui-select-indicator" aria-hidden="true">
-                  ✓
-                </SelectPrimitive.ItemIndicator>
-              </SelectPrimitive.Item>
-            ))}
+            {[...groups].map(([label, entries]) =>
+              label ? (
+                <SelectPrimitive.Group key={label} className="ui-select-group">
+                  <SelectPrimitive.Label className="ui-select-group-label">
+                    {label}
+                  </SelectPrimitive.Label>
+                  {entries.map(item)}
+                </SelectPrimitive.Group>
+              ) : (
+                entries.map(item)
+              ),
+            )}
           </SelectPrimitive.Viewport>
           <SelectPrimitive.ScrollDownButton className="ui-select-scroll" aria-hidden="true">
             <Chevron />
