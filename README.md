@@ -220,6 +220,10 @@ Choisir une collection pour consulter ses mods actifs, ses mods manquants et son
 
 Les modifications portent uniquement sur le profil sélectionné ; elles ne modifient aucune sauvegarde et ne souscrivent à aucun abonnement Steam. Le jeu doit être fermé. Chaque écriture vérifie que le fichier n’a pas changé, crée une copie de sécurité et conserve les favoris, les autres profils, les accents et les fins de ligne. Après une modification des profils dans le jeu, cliquer sur **Actualiser**.
 
+Un indicateur affiche **Enregistrement…**, puis **Modifications enregistrées** avec l’heure après confirmation de l’écriture. Il suit la collection concernée et signale les échecs. Les copies de sécurité des profils sont rangées dans `<racine utilisateur Zomboid>/backups/pz-mods/profiles/`, en dehors de `Lua`.
+
+![Confirmation d’enregistrement d’une collection fictive avec heure et accès au chemin de la copie de sécurité](docs/screenshot-collection-saved.png)
+
 **La séquence enregistrée dans un profil n’est pas une garantie de chargement dans le jeu** : Project Zomboid recalcule l’ordre à l’activation du profil.
 
 ### Créer un profil de collection locale
@@ -243,7 +247,9 @@ Ma collection:ExampleCore;123456789/ExampleOption;LocalExample;
 
 La première ligne est réservée aux favoris ; chaque ligne suivante est un profil `Nom:ModId;ModId;`. Le nom ne peut pas contenir les caractères réservés du format ou utiliser le préfixe `!fav!`.
 
-Avant l’écriture directe, l’application revérifie la sauvegarde source et le fichier de profils. Une copie `pz_modlist_settings.cfg.pz-mods-<date>-<identifiant>.bak` est créée si le fichier existe ; le remplacement est atomique et conserve son encodage UTF-8, son éventuel BOM et ses fins de ligne. L’aperçu et le téléchargement ne modifient aucun fichier du jeu. Les tests utilisent des profils fictifs dans des dossiers temporaires.
+Avant l’écriture directe, l’application revérifie la sauvegarde source et le fichier de profils. Une copie `pz_modlist_settings.cfg.pz-mods-<date>-<identifiant>.bak` est créée dans `<racine utilisateur Zomboid>/backups/pz-mods/profiles/` si le fichier existe ; le remplacement est atomique et conserve son encodage UTF-8, son éventuel BOM et ses fins de ligne. L’aperçu et le téléchargement ne modifient aucun fichier du jeu. Les tests utilisent des profils fictifs dans des dossiers temporaires.
+
+Ce dossier est préféré à une archive ZIP : les fichiers de profils sont petits, chaque copie reste indépendante et la restauration ne nécessite aucune extraction. Pour restaurer les profils, fermer le jeu et l’application, conserver le fichier actuel, puis recopier la sauvegarde choisie sous le nom `Lua/pz_modlist_settings.cfg`. Une copie contient le fichier complet, donc tous les profils et favoris à cette date. Les anciennes copies déjà présentes dans `Lua` restent à leur emplacement ; les nouvelles sont créées dans le dossier dédié.
 
 **Un profil natif ne garantit pas l’ordre de chargement exact de la sauvegarde** : le jeu utilise des tables Lua et recalcule l’ordre lors de l’activation. Conserver le manifeste ou l’export serveur pour partager également la séquence des IDs. Aucun abonnement Steam ni téléchargement de mod n’est effectué par cet export.
 

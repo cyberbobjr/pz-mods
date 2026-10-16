@@ -79,6 +79,26 @@ export class LocalProfileStore implements ProfileStorePort {
     )
       throw Error('unsupported');
   }
+  private async prepareBackupDirectory(userDir: string) {
+    const root = await fs.realpath(userDir);
+    if (!(await fs.stat(root)).isDirectory()) throw Error('unsupported');
+    let directory = root;
+    for (const segment of ['backups', 'pz-mods', 'profiles']) {
+      const next = path.join(directory, segment);
+      try {
+        await fs.mkdir(next);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+      }
+      const stat = await fs.lstat(next);
+      if (!stat.isDirectory() || stat.isSymbolicLink()) throw Error('unsupported');
+      directory = await fs.realpath(next);
+      const relative = path.relative(root, directory);
+      if (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative))
+        throw Error('unsupported');
+    }
+    return directory;
+  }
   async write(
     userDir: string,
     revision: string,
@@ -95,7 +115,11 @@ export class LocalProfileStore implements ProfileStorePort {
       await this.prepareDirectory(userDir);
       if ((await this.read(userDir)).revision !== revision) throw Error('concurrent');
       if (current.exists) {
-        backup = `${file}.pz-mods-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.bak`;
+        const backupDirectory = await this.prepareBackupDirectory(userDir);
+        backup = path.join(
+          backupDirectory,
+          `${path.basename(file)}.pz-mods-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.bak`,
+        );
         await fs.copyFile(file, backup, fs.constants.COPYFILE_EXCL);
       }
       await fs.writeFile(temporary, text, { encoding: 'utf8', flag: 'wx' });

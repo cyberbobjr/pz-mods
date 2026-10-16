@@ -108,6 +108,7 @@ test('profile preview is read-only and export creates Lua only under the configu
       false,
     );
     assert.deepEqual(result, { created: true, replaced: false });
+    await assert.rejects(fs.stat(path.join(f.root, 'backups')));
     assert.equal(await fs.readFile(f.profileFile, 'utf8'), '!fav!:\nFixture:123/A;Local;\n');
     const exported = await f.service.preview(f.save.id, f.snapshot.revision, 'Fixture');
     assert.equal(exported.exists, true);
@@ -147,6 +148,16 @@ test('profile writes preserve original bytes in backup and do not export unrelat
       false,
     );
     assert.equal(await fs.readFile(result.backup!, 'utf8'), original);
+    assert.deepEqual(await fs.readFile(result.backup!), Buffer.from(original, 'utf8'));
+    assert.equal(
+      path.dirname(result.backup!),
+      await fs.realpath(path.join(f.root, 'backups', 'pz-mods', 'profiles')),
+    );
+    assert.match(
+      path.basename(result.backup!),
+      /^pz_modlist_settings\.cfg\.pz-mods-\d{4}-\d{2}-\d{2}T[\d-]+Z-[a-f0-9-]{36}\.bak$/,
+    );
+    assert.deepEqual(await fs.readdir(path.dirname(f.profileFile)), ['pz_modlist_settings.cfg']);
     assert.equal(await fs.readFile(f.profileFile, 'utf8'), original + 'Fixture:123/A;Local;\r\n');
     assert.deepEqual(
       (await fs.readdir(path.dirname(f.profileFile))).filter((name) => name.endsWith('.tmp')),
@@ -298,5 +309,62 @@ test('missing-file revisions detect retargeted user-directory junctions and esca
     await assert.rejects(store.read(first), /UTF-8 compatible/);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test('unsafe backup directories refuse profile writes and leave the original file intact', async () => {
+  for (const segment of ['backups', 'pz-mods', 'profiles']) {
+    const f = await fixture();
+    try {
+      await fs.mkdir(path.dirname(f.profileFile));
+      const original = Buffer.from('\ufeff!fav!:Keep;\r\nOld:Original;\r\n', 'utf8');
+      await fs.writeFile(f.profileFile, original);
+      const outside = path.join(f.root, 'outside');
+      await fs.mkdir(outside);
+      const relative = ['backups', 'pz-mods', 'profiles'];
+      const index = relative.indexOf(segment);
+      const parent = path.join(f.root, ...relative.slice(0, index));
+      await fs.mkdir(parent, { recursive: true });
+      await fs.symlink(
+        outside,
+        path.join(parent, segment),
+        process.platform === 'win32' ? 'junction' : 'dir',
+      );
+      const preview = await f.service.preview(f.save.id, f.snapshot.revision, 'Fixture');
+      await assert.rejects(
+        f.service.export(f.save.id, f.snapshot.revision, 'Fixture', preview.profileRevision, false),
+        /Impossible d’enregistrer/,
+      );
+      assert.deepEqual(await fs.readFile(f.profileFile), original);
+      assert.deepEqual(await fs.readdir(outside), []);
+      assert.deepEqual(await fs.readdir(path.dirname(f.profileFile)), ['pz_modlist_settings.cfg']);
+    } finally {
+      await fs.rm(f.root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('a backup creation failure prevents overwrite and existing Lua backup files remain untouched', async () => {
+  const f = await fixture();
+  try {
+    await fs.mkdir(path.dirname(f.profileFile));
+    const original = '!fav!:\nOld:A;\n';
+    await fs.writeFile(f.profileFile, original);
+    const legacy = path.join(path.dirname(f.profileFile), 'pz_modlist_settings.cfg.old.bak');
+    await fs.writeFile(legacy, 'legacy-bytes');
+    await fs.writeFile(path.join(f.root, 'backups'), 'not-a-directory');
+    const preview = await f.service.preview(f.save.id, f.snapshot.revision, 'Fixture');
+    await assert.rejects(
+      f.service.export(f.save.id, f.snapshot.revision, 'Fixture', preview.profileRevision, false),
+      /Impossible d’enregistrer/,
+    );
+    assert.equal(await fs.readFile(f.profileFile, 'utf8'), original);
+    assert.equal(await fs.readFile(legacy, 'utf8'), 'legacy-bytes');
+    assert.deepEqual((await fs.readdir(path.dirname(f.profileFile))).sort(), [
+      'pz_modlist_settings.cfg',
+      'pz_modlist_settings.cfg.old.bak',
+    ]);
+  } finally {
+    await fs.rm(f.root, { recursive: true, force: true });
   }
 });

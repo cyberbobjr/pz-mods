@@ -11,6 +11,10 @@ type Props = {
   initialId?: string;
   onClose: () => void;
   onAdded: (backup?: string) => Promise<void> | void;
+  onWriteState?: (
+    phase: 'saving' | 'saved' | 'error' | 'idle',
+    details?: { backup?: string; message?: string },
+  ) => void;
 };
 type Preview = {
   id: string;
@@ -31,7 +35,7 @@ async function post<T>(url: string, body: unknown): Promise<T> {
   return result as T;
 }
 
-export function AddModDialog({ save, initialId = '', onClose, onAdded }: Props) {
+export function AddModDialog({ save, initialId = '', onClose, onAdded, onWriteState }: Props) {
   const { t } = useSourceI18n();
   const [id, setId] = useState(initialId);
   const [preview, setPreview] = useState<Preview>();
@@ -68,12 +72,14 @@ export function AddModDialog({ save, initialId = '', onClose, onAdded }: Props) 
     if (!preview || preview.alreadyActive || !confirmed || busy || completion) return;
     setPhase('adding');
     setError('');
+    onWriteState?.('saving');
     try {
       const result = await post<{ backup?: string; alreadyActive: boolean; id: string }>(
         '/api/add',
         payload,
       );
       setCompletion(result);
+      onWriteState?.(result.alreadyActive ? 'idle' : 'saved', { backup: result.backup });
       try {
         await onAdded(result.backup);
         onClose();
@@ -82,6 +88,9 @@ export function AddModDialog({ save, initialId = '', onClose, onAdded }: Props) 
         setError('L’ajout est enregistré. Actualisez la bibliothèque pour voir le résultat.');
       }
     } catch (reason) {
+      onWriteState?.('error', {
+        message: reason instanceof Error ? reason.message : String(reason),
+      });
       setError(reason instanceof Error ? reason.message : String(reason));
     } finally {
       setPhase('idle');

@@ -8,6 +8,7 @@ type Props = {
   save: { id: string; name: string; revision: string };
   disabled?: boolean;
   onBusyChange?: (busy: boolean) => void;
+  onProfileSaved?: (result: { name: string; backup?: string; replaced: boolean }) => void;
 };
 type Preview = {
   name: string;
@@ -31,7 +32,12 @@ async function request<T>(url: string, payload: unknown): Promise<T> {
   return data as T;
 }
 
-export function LocalProfileExport({ save, disabled = false, onBusyChange }: Props) {
+export function LocalProfileExport({
+  save,
+  disabled = false,
+  onBusyChange,
+  onProfileSaved,
+}: Props) {
   const { t } = useSourceI18n();
   const [name, setName] = useState(save.name.slice(0, 128));
   const [preview, setPreview] = useState<Preview>();
@@ -78,6 +84,11 @@ export function LocalProfileExport({ save, disabled = false, onBusyChange }: Pro
         overwrite: preview.exists && overwrite,
       });
       setResult(exported);
+      onProfileSaved?.({
+        name: preview.name,
+        backup: exported.backup,
+        replaced: exported.replaced,
+      });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
       setPreview(undefined);

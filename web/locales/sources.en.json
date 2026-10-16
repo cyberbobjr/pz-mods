@@ -53,5 +53,10 @@
   "Ce mod est référencé par la collection mais ses fichiers sont introuvables.": "This mod is referenced by the collection, but its files could not be found.",
   "Mod actif dans la collection mais introuvable sur le disque.": "This mod is enabled in the collection but could not be found on disk.",
   "Prérequis installé mais inactif dans cette collection.": "This dependency is installed but disabled in this collection.",
-  "Prérequis absent du disque et de la collection.": "This dependency is missing from both the disk and the collection."
+  "Prérequis absent du disque et de la collection.": "This dependency is missing from both the disk and the collection.",
+  "Collection chargée": "Collection loaded",
+  "Modifications enregistrées": "Changes saved",
+  "Échec de l’enregistrement": "Save failed",
+  "Masquer l’état d’enregistrement": "Dismiss save status",
+  "Copie de sécurité": "Backup"
 }

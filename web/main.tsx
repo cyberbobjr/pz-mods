@@ -1,7 +1,9 @@
 import { translateIssue, translateError } from './messages';
 import { I18nProvider } from './i18n';
 import { useSourceI18n, SourceProvider } from './source-context';
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useReducer } from 'react';
+import { sourceWriteReducer, type WritePhase } from './write-state';
+import { SourceWriteStatus } from './SourceWriteStatus';
 import { createRoot } from 'react-dom/client';
 import type { Mod, Save, Issue, WorkshopDetail } from '../src/domain/mods';
 import './style.css';
@@ -65,6 +67,19 @@ function App() {
   const [data, setData] = useState<Overview>();
   const sourceKind = data?.saves.find((source) => source.id === data.selected)?.kind || 'save';
   const { t, language, setLanguage } = useSourceI18n(sourceKind);
+  const [writes, dispatchWrite] = useReducer(sourceWriteReducer, { byId: {} });
+  function reportWrite(
+    source: { id: string; name: string; kind?: Save['kind'] },
+    phase: WritePhase | 'idle',
+    details?: { backup?: string; message?: string; silent?: boolean },
+  ) {
+    if (source.kind !== 'collection') return;
+    dispatchWrite(
+      phase === 'idle'
+        ? { type: 'idle', id: source.id }
+        : { type: phase, id: source.id, name: source.name, ...details },
+    );
+  }
   const [theme, setTheme] = useState(initialTheme);
   const [section, setSection] = useState<'library' | 'settings'>(() => {
     try {
@@ -88,7 +103,7 @@ function App() {
   const [selectedSave, setSelectedSave] = useState(initialNavigation.saveId);
   const [transferOpen, setTransferOpen] = useState(false);
   const [adding, setAdding] = useState<{
-    save: { id: string; name: string; revision: string };
+    save: { id: string; name: string; revision: string; kind?: Save['kind'] };
     initialId?: string;
   }>();
   function openAdd(mod?: Mod) {
@@ -98,6 +113,7 @@ function App() {
         id: data.selected,
         name: data.saves.find((save) => save.id === data.selected)?.name || data.selected,
         revision: data.revision,
+        kind: data.saves.find((source) => source.id === data.selected)?.kind,
       },
       initialId: mod ? (mod.workshopId ? `\\${mod.workshopId}/${mod.id}` : mod.id) : undefined,
     });
@@ -154,6 +170,7 @@ function App() {
     });
   }, [tab, search, page, selectedSave]);
   function changeContext(nextTab: NavigationTab, nextSave = selectedSave) {
+    if (nextSave !== selectedSave) setNotice(undefined);
     setSection('library');
     contexts.current[navigationContextKey(selectedSave, tab)] = { search, page };
     const next = contexts.current[navigationContextKey(nextSave, nextTab)];
@@ -359,22 +376,28 @@ function App() {
   const name = (id: string) => all.find((m) => m.id === id)?.name || id;
   async function remove() {
     if (!data?.selected) return;
+    const source = data.saves.find((source) => source.id === data.selected);
+    if (!source) return;
     setBusy(true);
     setError('');
+    reportWrite(source, 'saving');
     try {
       const result = await api('/api/remove', {
-        saveId: data.selected,
+        saveId: source.id,
         ids: [...checked],
         revision: data.revision,
       });
+      reportWrite(source, 'saved', { backup: result.backup });
       setConfirm(false);
       setDetail(undefined);
-      await load(data.selected);
-      setNotice({
-        key: 'Mods retirés de la sauvegarde. Copie de sécurité : {{backup}}',
-        values: { backup: result.backup },
-      });
+      await load(source.id);
+      if (source.kind !== 'collection')
+        setNotice({
+          key: 'Mods retirés de la sauvegarde. Copie de sécurité : {{backup}}',
+          values: { backup: result.backup },
+        });
     } catch (e) {
+      reportWrite(source, 'error', { message: (e as Error).message });
       setError((e as Error).message);
     } finally {
       setBusy(false);
@@ -554,6 +577,11 @@ function App() {
                     ? t('Aucune version de partie n’est associée à cette collection.')
                     : t('Version locale utilisée pour choisir les variantes des mods.')}
                 </small>
+                {sourceKind === 'collection' && (
+                  <SourceWriteStatus
+                    entry={data?.selected ? writes.byId[data.selected] : undefined}
+                  />
+                )}
               </div>
             </section>
             {sourceKind === 'collection' && (
@@ -579,7 +607,11 @@ function App() {
               </div>
             )}
             {notice && (
-              <div role="status" className="alert">
+              <div
+                role={sourceKind === 'collection' ? undefined : 'status'}
+                aria-live={sourceKind === 'collection' ? 'off' : undefined}
+                className="alert"
+              >
                 {t(notice.key, notice.values)}
                 <button
                   aria-label={t('Masquer la notification')}
@@ -884,18 +916,20 @@ function App() {
             save={adding.save}
             initialId={adding.initialId}
             onClose={() => setAdding(undefined)}
+            onWriteState={(phase, details) => reportWrite(adding.save, phase, details)}
             onAdded={async (backup?: string) => {
               const saveId = adding.save.id;
               setAdding(undefined);
               await load(saveId);
-              setNotice(
-                backup
-                  ? {
-                      key: 'Mod ajouté à la sauvegarde. Copie de sécurité : {{backup}}',
-                      values: { backup },
-                    }
-                  : { key: 'Ce mod est déjà actif dans la sauvegarde.', values: {} },
-              );
+              if (adding.save.kind !== 'collection')
+                setNotice(
+                  backup
+                    ? {
+                        key: 'Mod ajouté à la sauvegarde. Copie de sécurité : {{backup}}',
+                        values: { backup },
+                      }
+                    : { key: 'Ce mod est déjà actif dans la sauvegarde.', values: {} },
+                );
             }}
           />
         )}
@@ -912,6 +946,12 @@ function App() {
                 : undefined
             }
             onClose={() => setTransferOpen(false)}
+            onProfileSaved={(profile) => {
+              const source = data?.saves.find((source) => source.id === data.selected);
+              if (source?.kind === 'collection' && source.name === profile.name && profile.replaced)
+                reportWrite(source, 'saved', { backup: profile.backup, silent: true });
+              void load(source?.id);
+            }}
           />
         )}
         {orderEditor && (
@@ -923,18 +963,31 @@ function App() {
             onValidate={validateOrder}
             onClose={() => setOrderEditor(undefined)}
             onSave={async (ids) => {
-              const result = await api('/api/reorder', {
-                saveId: orderEditor.saveId,
-                revision: orderEditor.revision,
-                ids,
-              });
+              const source = data?.saves.find((source) => source.id === orderEditor.saveId);
+              if (source) reportWrite(source, 'saving');
+              let result: { backup: string };
+              try {
+                result = await api('/api/reorder', {
+                  saveId: orderEditor.saveId,
+                  revision: orderEditor.revision,
+                  ids,
+                });
+              } catch (reason) {
+                if (source)
+                  reportWrite(source, 'error', {
+                    message: reason instanceof Error ? reason.message : String(reason),
+                  });
+                throw reason;
+              }
+              if (source) reportWrite(source, 'saved', { backup: result.backup });
               const selected = orderEditor.saveId;
               setOrderEditor(undefined);
               await load(selected);
-              setNotice({
-                key: 'Ordre enregistré. Copie de sécurité : {{backup}}',
-                values: { backup: result.backup },
-              });
+              if (source?.kind !== 'collection')
+                setNotice({
+                  key: 'Ordre enregistré. Copie de sécurité : {{backup}}',
+                  values: { backup: result.backup },
+                });
             }}
           />
         )}
@@ -1001,6 +1054,19 @@ function App() {
             </div>
           </Dialog>
         )}
+        {writes.toastId &&
+          writes.byId[writes.toastId] &&
+          !adding &&
+          !orderEditor &&
+          !confirm &&
+          !transferOpen &&
+          !detail && (
+            <SourceWriteStatus
+              toast
+              entry={writes.byId[writes.toastId]}
+              onDismiss={() => dispatchWrite({ type: 'dismiss' })}
+            />
+          )}
       </div>
     </SourceProvider>
   );

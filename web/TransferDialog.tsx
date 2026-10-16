@@ -9,6 +9,7 @@ import { LocalProfileExport } from './LocalProfileExport';
 type Props = {
   save?: { id: string; name: string; revision: string };
   onClose: () => void;
+  onProfileSaved?: (result: { name: string; backup?: string; replaced: boolean }) => void;
 };
 type Failure = { id: string; error: string };
 type ActionResult = { succeeded: string[]; existing: string[]; failed: Failure[] };
@@ -39,7 +40,7 @@ function download(content: string, filename: string, type: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function TransferDialog({ save, onClose }: Props) {
+export function TransferDialog({ save, onClose, onProfileSaved }: Props) {
   const { t } = useSourceI18n();
   const [tab, setTab] = useState<'export' | 'import'>(save ? 'export' : 'import');
   const [exportPreview, setExportPreview] = useState<TransferPreview>();
@@ -308,6 +309,7 @@ export function TransferDialog({ save, onClose }: Props) {
           save={save}
           disabled={busy}
           onBusyChange={setProfileBusy}
+          onProfileSaved={onProfileSaved}
         />
       )}
       {preview && (
