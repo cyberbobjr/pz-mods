@@ -85,6 +85,9 @@ test('transfer service checks save revision and import performs no writes', asyn
     saves: async () => [],
     image: async () => undefined,
     status: async () => ({}),
+    add: async () => {
+      throw Error('Unexpected write');
+    },
     remove: async () => {
       throw Error('Unexpected write');
     },

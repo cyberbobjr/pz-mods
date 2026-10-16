@@ -1,8 +1,13 @@
+import { Tooltip } from './ui/Tooltip';
 import { translateIssue, contentFallback } from './messages';
 import { useI18n } from './i18n';
 import { useState } from 'react';
 import type { Mod, Issue } from '../src/domain/mods';
 import { Dialog } from './Dialog';
+import { dependentsOf } from './dependents';
+import { DependencyBadge } from './DependencyBadge';
+import { groupMods } from './parent-groups';
+import { parentTitle } from './mod-sort';
 
 type Detail = { title: string; description: string; preview_url: string; time_updated?: number };
 type Props = {
@@ -14,6 +19,7 @@ type Props = {
   isActive: (mod: Mod) => boolean;
   onSelect: (mod: Mod) => void;
   onRemove: (mod: Mod) => void;
+  onAdd?: (mod: Mod) => void;
   onClose: () => void;
 };
 const plain = (text: string) => text.replace(/\[\/?[^\]]+\]/g, '').replace(/<[^>]*>/g, '');
@@ -40,18 +46,20 @@ export function ModDetail({
   isActive,
   onSelect,
   onRemove,
+  onAdd,
   onClose,
 }: Props) {
   const { t, language } = useI18n();
   const [tab, setTab] = useState<'description' | 'compatibility'>('description');
-  const title =
-    workshop?.title || (members.length > 1 ? t('Projet local · ') + members[0].name : mod.name);
+  const parent = groupMods(members)[0];
+  const title = workshop?.title || (parent ? parentTitle(parent, {}) : mod.name);
   const poster = workshop?.preview_url || (mod.image ? '/api/image/' + mod.image : undefined);
   const activeCount = members.filter(isActive).length;
   const alerts = issues.filter((issue) => issue.modId === mod.id || issue.target === mod.id);
   const related = (id: string) =>
     all.find((item) => item.id === id && isActive(item)) || all.find((item) => item.id === id);
   const active = isActive(mod);
+  const dependents = dependentsOf(mod, all);
   return (
     <Dialog label={title} onClose={onClose} className="mod-detail">
       <header className="detail-header">
@@ -62,7 +70,11 @@ export function ModDetail({
         )}
         <div className="detail-heading">
           <span className="eyebrow">
-            {mod.workshopId ? t('ÉLÉMENT WORKSHOP') : t('PROJET LOCAL')}
+            {mod.workshopId
+              ? t('ÉLÉMENT WORKSHOP')
+              : !mod.source
+                ? t('ORIGINE INCONNUE')
+                : t('PROJET LOCAL')}
           </span>
           <h2>{title}</h2>
           <span className="detail-count">
@@ -93,7 +105,11 @@ export function ModDetail({
         <div>
           <span>{t('Source')}</span>
           <strong>
-            {mod.workshopId ? t('Workshop #') + mod.workshopId : t('Fichiers de développement')}
+            {mod.workshopId
+              ? t('Workshop #') + mod.workshopId
+              : !mod.source
+                ? t('Fichiers introuvables')
+                : t('Fichiers de développement')}
           </strong>
         </div>
       </div>
@@ -132,7 +148,44 @@ export function ModDetail({
             <span className={'tag ' + (active ? '' : 'neutral')}>
               {active ? t('ACTIVÉ') : t('DÉSACTIVÉ')}
             </span>
+            {!mod.source && <span className="tag danger">{t('FICHIERS MANQUANTS')}</span>}
           </div>
+          {dependents.length > 0 && (
+            <section className="dependents-panel" aria-label={t('Utilisé par')}>
+              <div className="dependents-heading">
+                <h4>{t('Utilisé par')}</h4>
+                <DependencyBadge
+                  count={dependents.length}
+                  activeCount={dependents.filter(isActive).length}
+                  onClick={() => document.querySelector<HTMLElement>('.dependent-row')?.focus()}
+                />
+              </div>
+              <p>
+                {t(
+                  'Ces mods déclarent ce sous-mod comme prérequis. Vérifiez-les avant de le retirer.',
+                )}
+              </p>
+              <div className="dependents-list">
+                {[...dependents]
+                  .sort((a, b) => Number(isActive(b)) - Number(isActive(a)))
+                  .map((item) => (
+                    <button
+                      className="dependent-row"
+                      key={`${item.workshopId || 'local'}:${item.id}`}
+                      onClick={() => onSelect(item)}
+                    >
+                      <span>
+                        {item.name}
+                        <code>{item.id}</code>
+                      </span>
+                      <span className={'tag ' + (isActive(item) ? '' : 'neutral')}>
+                        {isActive(item) ? t('DANS LA SAUVEGARDE') : t('INSTALLÉ, INACTIF')}
+                      </span>
+                    </button>
+                  ))}
+              </div>
+            </section>
+          )}
           {alerts.length > 0 && (
             <div className="detail-alert" role="status">
               <strong>
@@ -260,9 +313,26 @@ export function ModDetail({
         </div>
         <div className="detail-footer-actions">
           {active && (
-            <button className="button destructive" onClick={() => onRemove(mod)}>
-              {t('Retirer ce sous-mod')}
-            </button>
+            <Tooltip
+              content={t(
+                'Retire uniquement cet identifiant de la sauvegarde, après confirmation. Les fichiers restent installés.',
+              )}
+            >
+              <button className="button destructive" onClick={() => onRemove(mod)}>
+                {t('Retirer ce sous-mod')}
+              </button>
+            </Tooltip>
+          )}
+          {!active && onAdd && (
+            <Tooltip
+              content={t(
+                'Activer uniquement ce sous-mod dans la sauvegarde courante, après prévisualisation.',
+              )}
+            >
+              <button className="button primary" onClick={() => onAdd(mod)}>
+                {t('Activer dans la sauvegarde')}
+              </button>
+            </Tooltip>
           )}
           {mod.workshopId && (
             <a

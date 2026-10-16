@@ -11,6 +11,8 @@ Les dépendances vont vers le domaine. Aucun accès disque ou réseau dans le do
 
 Les transferts serveur sont des règles du domaine ; leurs cas d’usage analysent et exportent sans écriture. Les actions de compte Steam passent par les ports `SteamAccountPort` et `SteamCatalogPort`. L’adaptateur de navigateur utilise exclusivement un profil dédié ignoré par Git. Aucun cookie ou jeton ne franchit l’API HTTP. Les tests de ces ports utilisent des doubles et ne modifient jamais un compte Steam réel.
 
+La configuration des chemins passe par `SettingsService`, `SettingsStorePort` et `ConfigurableLibraryPort`. Le domaine valide la forme des réglages ; les adaptateurs valident les dossiers et enregistrent atomiquement la configuration locale ignorée par Git. Le changement de bibliothèque est verrouillé pendant les écritures et invalide les références de sauvegarde et caches locaux. Les thèmes, la langue et les préférences de navigation restent dans le navigateur ; ils ne sont pas des réglages serveur.
+
 Les incompatibilités déclarées sont des constats ; les collisions sont des soupçons. Ne jamais garantir l’absence de conflits par analyse statique. Aucun retrait ou désabonnement réel pendant les tests sur les données utilisateur.
 
 Respecter SOLID sans abstraction inutile, TypeScript strict, ESLint et Prettier. Tous les fichiers texte sont en UTF-8. Vérifier les accents.

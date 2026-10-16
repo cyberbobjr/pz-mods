@@ -1,0 +1,233 @@
+.add-mod-dialog {
+  width: 690px;
+  color: var(--text);
+}
+.add-mod-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+.add-mod-heading h2 {
+  font-size: 29px;
+  margin: 12px 0 6px;
+}
+.add-mod-heading p {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0;
+}
+.add-mod-heading > .button {
+  font-size: 20px;
+  padding: 5px 12px;
+  flex-shrink: 0;
+}
+.add-mod-intro {
+  margin: 23px 0 !important;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.add-mod-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.add-mod-label label {
+  font-size: 12px;
+  font-weight: 600;
+}
+.add-mod-help {
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 50%;
+  background: var(--panel-raised);
+  color: var(--mint);
+  font: 600 11px system-ui;
+}
+.add-mod-input-row {
+  display: flex;
+  gap: 10px;
+}
+.add-mod-input-row input {
+  min-width: 0;
+  flex: 1;
+  padding: 12px;
+  background: var(--panel-sunken);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font:
+    12px ui-monospace,
+    Consolas,
+    monospace;
+}
+.add-mod-input-row input::placeholder {
+  color: var(--muted);
+}
+.add-mod-preview {
+  margin-top: 23px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  background: var(--panel-sunken);
+}
+.add-mod-resolved {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+}
+.add-mod-resolved > div {
+  min-width: 0;
+}
+.add-mod-resolved > div > span {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+.add-mod-resolved code {
+  color: var(--mint);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.add-mod-warning {
+  margin-top: 20px;
+  padding: 14px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  border-radius: 6px;
+}
+.add-mod-warning strong {
+  font-size: 12px;
+  color: var(--text);
+}
+.add-mod-warning p {
+  margin-bottom: 0;
+}
+.add-mod-diagnostics {
+  margin-top: 23px;
+}
+.add-mod-dialog h3 {
+  font-size: 13px;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+.add-mod-issues {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.add-mod-issues li {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border-top: 1px solid var(--line);
+  padding: 11px 0;
+}
+.add-mod-issues li > .tag {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.add-mod-issues code {
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.add-mod-issues p {
+  font-size: 11px;
+  margin: 3px 0 0;
+}
+.add-mod-global {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.add-mod-global summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.add-mod-order {
+  padding-left: 18px;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.add-mod-clear,
+.add-mod-already {
+  font-size: 11px !important;
+  margin: 18px 0 0 !important;
+  color: var(--mint) !important;
+}
+.add-mod-confirmation {
+  border-top: 1px solid var(--line);
+  margin-top: 22px;
+  padding-top: 9px;
+}
+.add-mod-confirmation > p {
+  font-size: 10px !important;
+}
+.add-mod-confirmation label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text);
+}
+.add-mod-confirmation input {
+  margin: 5px 0 0;
+  accent-color: var(--mint);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.add-mod-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+.add-mod-success {
+  padding: 20px;
+  margin-top: 22px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.add-mod-dialog .alert {
+  margin-top: 20px;
+}
+@media (max-width: 600px) {
+  .add-mod-heading h2 {
+    font-size: 25px;
+  }
+  .add-mod-input-row {
+    flex-direction: column;
+  }
+  .add-mod-resolved {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .add-mod-preview {
+    padding: 14px;
+  }
+  .add-mod-issues li {
+    flex-direction: column;
+    gap: 7px;
+  }
+  .add-mod-actions {
+    flex-direction: column-reverse;
+  }
+  .add-mod-actions > .button {
+    width: 100%;
+  }
+}

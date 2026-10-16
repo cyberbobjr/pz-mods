@@ -1,0 +1,280 @@
+.settings-page {
+  padding: 40px 0 50px;
+  max-width: 1200px;
+  margin: auto;
+  color: var(--text);
+}
+.settings-intro {
+  margin-bottom: 34px;
+}
+.settings-intro h1 {
+  font-size: 46px;
+  letter-spacing: -2px;
+  margin: 14px 0;
+}
+.settings-intro p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.settings-section {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 28px;
+  margin-top: 22px;
+}
+.settings-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 25px;
+}
+.settings-section-heading h2 {
+  font-size: 23px;
+  margin: 0;
+}
+.settings-section-heading p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+  max-width: 720px;
+  margin: 9px 0 0;
+}
+.settings-section-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: 9px;
+  color: var(--mint);
+  font-size: 24px;
+}
+.settings-appearance-grid,
+.settings-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.settings-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.settings-field {
+  min-width: 0;
+}
+.settings-field-wide {
+  grid-column: 1/-1;
+}
+.settings-field > label,
+.settings-label-row label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.settings-field > .ui-select-trigger {
+  width: 100%;
+  margin-top: 12px;
+}
+.settings-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  margin-bottom: 10px;
+}
+.settings-path-badge {
+  margin-left: auto;
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  background: var(--panel-sunken);
+  border: 1px solid var(--line);
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.settings-path-badge.custom {
+  color: var(--mint);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.settings-help {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 50%;
+  height: 18px;
+  width: 18px;
+  font: 600 11px system-ui;
+  background: var(--panel-raised);
+  color: var(--mint);
+  padding: 0;
+}
+.settings-help:hover {
+  background: var(--accent-soft);
+}
+.settings-field > input,
+.settings-field > textarea {
+  display: block;
+  width: 100%;
+  padding: 12px 13px;
+  background: var(--panel-sunken);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font:
+    12px/1.7 ui-monospace,
+    Consolas,
+    monospace;
+}
+.settings-field > textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+.settings-field > input::placeholder,
+.settings-field > textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+.settings-field > small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.8;
+  margin-top: 9px;
+}
+.settings-fields:disabled {
+  opacity: 0.65;
+}
+.settings-effective {
+  margin-top: 26px;
+  padding: 17px;
+  border-radius: 7px;
+  background: var(--panel-sunken);
+  border: 1px solid var(--line);
+}
+.settings-effective summary {
+  font-size: 12px;
+  color: var(--mint);
+  cursor: pointer;
+}
+.settings-effective dl {
+  margin: 20px 0 0;
+  display: grid;
+  gap: 17px;
+}
+.settings-effective dt {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.settings-effective dd {
+  margin: 0;
+  color: var(--text);
+  font:
+    11px/1.8 ui-monospace,
+    Consolas,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.settings-footer {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.settings-footer > p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.settings-loading {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 30px 0;
+}
+.settings-retry {
+  padding: 10px 0;
+}
+.settings-page .alert {
+  margin-top: 15px;
+}
+@media (max-width: 760px) {
+  .settings-page {
+    padding-top: 26px;
+  }
+  .settings-intro h1 {
+    font-size: 37px;
+  }
+  .settings-section {
+    padding: 19px;
+  }
+  .settings-section-heading {
+    gap: 12px;
+  }
+  .settings-section-heading h2 {
+    font-size: 20px;
+  }
+  .settings-section-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 21px;
+  }
+  .settings-appearance-grid,
+  .settings-fields {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .settings-label-row {
+    flex-wrap: wrap;
+  }
+  .settings-path-badge {
+    font-size: 7px;
+  }
+  .settings-actions {
+    flex-direction: column;
+  }
+  .settings-actions .button {
+    width: 100%;
+  }
+}
+.settings-development {
+  padding: 18px;
+  margin-top: 24px;
+  background: var(--panel-sunken);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+.settings-development h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.settings-development p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.settings-development code {
+  font:
+    11px/1.8 ui-monospace,
+    Consolas,
+    monospace;
+  color: var(--mint);
+  overflow-wrap: anywhere;
+}

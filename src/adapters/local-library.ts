@@ -5,6 +5,9 @@ import { createHash, randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { LibraryPort } from '../application/service.js';
+import type { ConfigurableLibraryPort } from '../application/settings.js';
+import { parsePathOverrides, type PathOverrides, type SettingsResult } from '../domain/settings.js';
+import { validateAddedId } from '../domain/additions.js';
 import {
   compareVersion,
   normalize,
@@ -47,12 +50,18 @@ async function isGameRunning() {
   return /"ProjectZomboid[^"\r\n]*\.exe"/i.test(processes.stdout);
 }
 
-export class LocalLibrary implements LibraryPort {
-  private readonly root: string;
+export class LocalLibrary implements LibraryPort, ConfigurableLibraryPort {
+  private root: string;
+  private steamPath = '';
+  private savesRoot = '';
+  private localRoots: string[] = [];
+  private workshopRoots: string[] = [];
+  private overrides: PathOverrides = {};
+  private configuring = false;
+  private generation = 0;
   constructor(private readonly options: LocalLibraryOptions = {}) {
     this.root = options.userDir || process.env.PZ_USER_DIR || path.join(os.homedir(), 'Zomboid');
   }
-  private libraries: string[] = [];
   private images = new Map<string, string>();
   private savePaths = new Map<string, string>();
   private busy = false;
@@ -61,22 +70,91 @@ export class LocalLibrary implements LibraryPort {
   private scannedVersion = '';
   private scannedAt = 0;
   async init() {
-    const steam =
-      this.options.steamPath || process.env.STEAM_PATH || 'C:/Program Files (x86)/Steam';
-    const vdf = await read(path.join(steam, 'steamapps/libraryfolders.vdf'));
-    this.libraries = [
-      ...new Set([
-        steam,
-        ...[...vdf.matchAll(/"path"\s+"([^"]+)"/g)].map((m) => m[1].replace(/\\\\/g, '\\')),
-      ]),
-    ];
-    this.gameVersion =
-      (await read(path.join(this.root, 'version.txt'))).match(/\d+\.\d+(?:\.\d+)?/)?.[0] || '';
+    await this.configure({});
+  }
+  async settings(): Promise<SettingsResult> {
+    return {
+      paths: {
+        userDir: this.root,
+        steamPath: this.steamPath,
+        savesDir: this.savesRoot,
+        localModsDirs: [...this.localRoots],
+        workshopDirs: [...this.workshopRoots],
+      },
+      overrides: structuredClone(this.overrides),
+    };
+  }
+  async configure(value: PathOverrides, commit?: () => Promise<void>) {
+    if (this.busy || this.configuring) throw Error('Une modification est déjà en cours.');
+    this.configuring = true;
+    try {
+      const overrides = parsePathOverrides(value);
+      const supplied = [
+        overrides.userDir,
+        overrides.steamPath,
+        overrides.savesDir,
+        ...(overrides.localModsDirs || []),
+        ...(overrides.workshopDirs || []),
+      ].filter((item): item is string => item !== undefined);
+      for (const folder of supplied) {
+        if (
+          !path.isAbsolute(folder) ||
+          !(await fs
+            .stat(folder)
+            .then((stat) => stat.isDirectory())
+            .catch(() => false))
+        )
+          throw Error('Un chemin doit désigner un dossier absolu existant.');
+      }
+      const userDir =
+        overrides.userDir ||
+        this.options.userDir ||
+        process.env.PZ_USER_DIR ||
+        path.join(os.homedir(), 'Zomboid');
+      const steam =
+        overrides.steamPath ||
+        this.options.steamPath ||
+        process.env.STEAM_PATH ||
+        'C:/Program Files (x86)/Steam';
+      const vdf = await read(path.join(steam, 'steamapps/libraryfolders.vdf'));
+      const libraries = [
+        ...new Set([
+          steam,
+          ...[...vdf.matchAll(/"path"\s+"([^"]+)"/g)].map((m) => m[1].replace(/\\\\/g, '\\')),
+        ]),
+      ];
+      const gameVersion =
+        (await read(path.join(userDir, 'version.txt'))).match(/\d+\.\d+(?:\.\d+)?/)?.[0] || '';
+      // All validation and initialization reads have succeeded. Keep mutations
+      // locked while persisting, then switch the prepared configuration at once.
+      await commit?.();
+      this.root = userDir;
+      this.steamPath = steam;
+      this.savesRoot = overrides.savesDir || path.join(userDir, 'Saves');
+      this.localRoots = overrides.localModsDirs || [path.join(userDir, 'mods')];
+      this.workshopRoots =
+        overrides.workshopDirs ||
+        libraries.map((library) => path.join(library, 'steamapps/workshop/content/108600'));
+      this.gameVersion = gameVersion;
+      this.overrides = overrides;
+      this.generation++;
+      this.images.clear();
+      this.savePaths.clear();
+      this.scanned = [];
+      this.scannedAt = 0;
+      this.scannedVersion = '';
+    } finally {
+      this.configuring = false;
+    }
+  }
+  private ensureConfigured() {
+    if (this.configuring)
+      throw Error('Une modification des chemins est en cours. Actualise après son application.');
   }
   async status() {
     return {
       userDir: this.root,
-      workshopRoots: this.libraries.map((l) => path.join(l, 'steamapps/workshop/content/108600')),
+      workshopRoots: [...this.workshopRoots],
       gameVersion: this.gameVersion,
       unsubscribe: 'workshop-page',
       analysis:
@@ -84,17 +162,19 @@ export class LocalLibrary implements LibraryPort {
     };
   }
   async saves() {
+    this.ensureConfigured();
+    const generation = this.generation;
     const result: Save[] = [];
-    this.savePaths.clear();
-    for (const mode of await entries(path.join(this.root, 'Saves'))) {
+    const savePaths = new Map<string, string>();
+    for (const mode of await entries(this.savesRoot)) {
       if (!mode.isDirectory() || mode.name.toLowerCase() === 'multiplayer') continue;
-      for (const dir of await entries(path.join(this.root, 'Saves', mode.name))) {
+      for (const dir of await entries(path.join(this.savesRoot, mode.name))) {
         if (!dir.isDirectory()) continue;
-        const full = path.join(this.root, 'Saves', mode.name, dir.name);
+        const full = path.join(this.savesRoot, mode.name, dir.name);
         const stat = await fs.stat(path.join(full, 'mods.txt')).catch(() => null);
         if (!stat) continue;
         const id = hash(full).slice(0, 24);
-        this.savePaths.set(id, full);
+        savePaths.set(id, full);
         result.push({
           id,
           name: dir.name,
@@ -103,6 +183,9 @@ export class LocalLibrary implements LibraryPort {
         });
       }
     }
+    if (generation !== this.generation || this.configuring)
+      throw Error('Les chemins ont changé. Actualise la liste.');
+    this.savePaths = savePaths;
     return result.sort((a, b) => b.modified.localeCompare(a.modified));
   }
   private savePath(id: string) {
@@ -111,23 +194,30 @@ export class LocalLibrary implements LibraryPort {
     return p;
   }
   async readSave(id: string) {
+    this.ensureConfigured();
+    const generation = this.generation;
     const p = this.savePath(id);
     const text = await fs.readFile(path.join(p, 'mods.txt'), 'utf8');
+    if (generation !== this.generation || this.configuring)
+      throw Error('Les chemins ont changé. Actualise la liste.');
     return {
       ids: parseSave(text),
       revision: hash(text),
       version: this.gameVersion || undefined,
     };
   }
-  async scan(version = this.gameVersion) {
-    if (this.scannedVersion === version && Date.now() - this.scannedAt < 30000) return this.scanned;
+  async scan(version = this.gameVersion, force = false) {
+    this.ensureConfigured();
+    const generation = this.generation;
+    if (!force && this.scannedVersion === version && Date.now() - this.scannedAt < 30000)
+      return this.scanned;
     const mods: Mod[] = [];
-    this.images.clear();
+    const images = new Map<string, string>();
     const roots = [
-      { folder: path.join(this.root, 'mods'), workshop: false, development: false },
+      ...this.localRoots.map((folder) => ({ folder, workshop: false, development: false })),
       { folder: path.join(this.root, 'Workshop'), workshop: false, development: true },
-      ...this.libraries.map((l) => ({
-        folder: path.join(l, 'steamapps/workshop/content/108600'),
+      ...this.workshopRoots.map((folder) => ({
+        folder,
         workshop: true,
         development: false,
       })),
@@ -198,7 +288,7 @@ export class LocalLibrary implements LibraryPort {
                   .catch(() => false)
               ) {
                 image = imageKey;
-                this.images.set(imageKey, candidate);
+                images.set(imageKey, candidate);
                 break;
               }
             }
@@ -213,7 +303,7 @@ export class LocalLibrary implements LibraryPort {
                 .catch(() => false)
             ) {
               image = imageKey;
-              this.images.set(imageKey, preview);
+              images.set(imageKey, preview);
             }
           }
           mods.push({
@@ -246,12 +336,16 @@ export class LocalLibrary implements LibraryPort {
           });
         }
       }
+    if (generation !== this.generation || this.configuring)
+      throw Error('Les chemins ont changé. Actualise la liste.');
+    this.images = images;
     this.scanned = mods;
     this.scannedAt = Date.now();
     this.scannedVersion = version;
     return mods;
   }
   async image(key: string) {
+    this.ensureConfigured();
     return this.images.get(key);
   }
   async remove(id: string, ids: string[], revision: string) {
@@ -270,6 +364,37 @@ export class LocalLibrary implements LibraryPort {
         active.length - active.filter((i) => removed.has(normalize(i))).length
       )
         throw Error('Format mods.txt non pris en charge.');
+      return next;
+    });
+  }
+  async add(id: string, rawId: string, revision: string) {
+    const added = validateAddedId(rawId);
+    return this.writeSave(id, revision, (original) => {
+      const active = parseSave(original);
+      if (active.length >= 10000 || active.includes(added))
+        throw Error('Ajout de mod invalide ou déjà présent.');
+      const blocks = [
+        ...original.matchAll(
+          /^([\t ]*mods[\t ]*(?:\r?\n[\t ]*)?\{[\t ]*\r?\n)([\s\S]*?)(^[\t ]*\}[\t ]*,?[\t ]*(?:\r?\n|$))/gm,
+        ),
+      ];
+      if (blocks.length !== 1) throw Error('Format mods.txt non pris en charge pour un ajout.');
+      const block = blocks[0];
+      const body = block[2];
+      if (
+        parseSave(body).length !== active.length ||
+        body.split(/\r?\n/).some((line) => !/^\s*(?:#|\/\/)/.test(line) && /[{}]/.test(line))
+      )
+        throw Error('Format mods.txt non pris en charge pour un ajout.');
+      const lineEnding = block[1].includes('\r\n') ? '\r\n' : '\n';
+      const prefix = body.match(/^([\t ]*mod[\t ]*=[\t ]*)[^\r\n]+/m)?.[1] || '\tmod = ';
+      const replacement = `${block[1]}${body}${prefix}${added},${lineEnding}${block[3]}`;
+      const next =
+        original.slice(0, block.index) +
+        replacement +
+        original.slice((block.index || 0) + block[0].length);
+      if (JSON.stringify(parseSave(next)) !== JSON.stringify([...active, added]))
+        throw Error('Format mods.txt non pris en charge pour un ajout.');
       return next;
     });
   }
@@ -292,6 +417,7 @@ export class LocalLibrary implements LibraryPort {
     });
   }
   private async writeSave(id: string, revision: string, transform: (original: string) => string) {
+    this.ensureConfigured();
     if (this.busy) throw Error('Une modification est déjà en cours.');
     this.busy = true;
     try {

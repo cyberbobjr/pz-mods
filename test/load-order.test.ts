@@ -45,6 +45,7 @@ test('service validates without writes and allows existing problems while blocki
     status: async () => ({}),
     image: async () => undefined,
     remove: async () => '',
+    add: async () => '',
     reorder: async () => {
       writes++;
       return 'backup';

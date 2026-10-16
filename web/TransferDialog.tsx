@@ -1,3 +1,4 @@
+import { Tooltip } from './ui/Tooltip';
 import type { TransferWarning, TransferResult as TransferPreview } from '../src/domain/transfers';
 import { useEffect, useState } from 'react';
 import { Dialog } from './Dialog';
@@ -366,18 +367,24 @@ export function TransferDialog({ save, onClose }: Props) {
             >
               {t('Télécharger le manifeste .json')}
             </button>
-            <button
-              className="button"
-              disabled={busy}
-              onClick={() =>
-                void perform(async () => {
-                  await navigator.clipboard.writeText(preview.serverText);
-                  setNotice('Configuration copiée.');
-                })
-              }
+            <Tooltip
+              content={t(
+                'Copie uniquement Mods= et WorkshopItems=. Les autres paramètres du serveur restent à configurer.',
+              )}
             >
-              {t('Copier la configuration')}
-            </button>
+              <button
+                className="button"
+                disabled={busy}
+                onClick={() =>
+                  void perform(async () => {
+                    await navigator.clipboard.writeText(preview.serverText);
+                    setNotice('Configuration copiée.');
+                  })
+                }
+              >
+                {t('Copier la configuration')}
+              </button>
+            </Tooltip>
           </div>
           <section className="transfer-steam">
             <h3>{t('Actions Steam sur les parents Workshop')}</h3>

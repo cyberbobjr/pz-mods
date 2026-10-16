@@ -4,10 +4,13 @@ import type { Mod } from '../src/domain/mods';
 import type { ParentGroup } from './parent-groups';
 import { loadPosition } from './load-order';
 import { parentTitle } from './mod-sort';
+import { parentDependents } from './dependents';
+import { DependencyBadge } from './DependencyBadge';
 
 type Details = Record<string, { title: string; description: string; preview_url: string }>;
 type Props = {
   groups: ParentGroup[];
+  all: Mod[];
   view: 'cards' | 'list';
   steam: Details;
   checked: Set<string>;
@@ -24,6 +27,8 @@ export function ParentLibrary(props: Props) {
   const { t } = useI18n();
   function content(group: ParentGroup) {
     const first = group.members[0];
+    const requiredBy = parentDependents(group, props.all);
+    const missing = group.members.every((mod) => !mod.source);
     const remote = first.workshopId ? props.steam[first.workshopId] : undefined;
     const title = parentTitle(group, props.steam);
     const image =
@@ -62,8 +67,12 @@ export function ParentLibrary(props: Props) {
           {title}
         </button>
         <div className="origin-label">
-          {first.workshopId ? t('ÉLÉMENT WORKSHOP #') + first.workshopId : t('PROJET LOCAL')} ·{' '}
-          {group.members.length} {t('ID(s)')}
+          {first.workshopId
+            ? t('ÉLÉMENT WORKSHOP #') + first.workshopId
+            : missing
+              ? t('ORIGINE INCONNUE')
+              : t('PROJET LOCAL')}{' '}
+          · {group.members.length} {t('ID(s)')}
         </div>
       </>
     );
@@ -73,7 +82,11 @@ export function ParentLibrary(props: Props) {
           const active = props.isActive(mod);
           return (
             <div
-              className={'submod-entry ' + (active ? 'enabled' : 'disabled')}
+              className={
+                'submod-entry ' +
+                (active ? 'enabled' : 'disabled') +
+                (!mod.source ? ' files-missing' : '')
+              }
               key={mod.source || mod.id}
             >
               {active && (
@@ -95,7 +108,7 @@ export function ParentLibrary(props: Props) {
                   {mod.name}
                   <small>{mod.id}</small>
                 </span>
-                <b>{active ? t('ACTIVÉ') : t('DÉSACTIVÉ')}</b>
+                <b>{!mod.source ? t('MANQUANT') : active ? t('ACTIVÉ') : t('DÉSACTIVÉ')}</b>
                 {props.issueIds.has(mod.id) && (
                   <span className="submod-alert" aria-label={t('Anomalie à vérifier')}>
                     !
@@ -108,9 +121,17 @@ export function ParentLibrary(props: Props) {
       </div>
     );
     const status = (
-      <span className={'tag ' + (activeCount ? '' : 'neutral')}>
-        {activeCount} / {group.members.length} {t('ACTIVÉ(S)')}
-      </span>
+      <div className="parent-badges">
+        {missing && <span className="tag danger">{t('FICHIERS MANQUANTS')}</span>}
+        <DependencyBadge
+          count={requiredBy.mods.length}
+          activeCount={requiredBy.mods.filter(props.isActive).length}
+          onClick={() => props.onDetail(requiredBy.requiredMember || first)}
+        />
+        <span className={'tag ' + (activeCount ? '' : 'neutral')}>
+          {activeCount} / {group.members.length} {t('ACTIVÉ(S)')}
+        </span>
+      </div>
     );
     return { first, poster, heading, tags, status, description };
   }

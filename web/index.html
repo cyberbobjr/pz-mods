@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#101813" />
+    <script>
+      try {
+        const theme = localStorage.getItem('pz-mods-theme');
+        if (['survivor', 'midnight', 'amethyst', 'copper'].includes(theme))
+          document.documentElement.dataset.theme = theme;
+      } catch {
+        /* Default theme remains usable without browser storage. */
+      }
+    </script>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23101813'/%3E%3Cpath d='M16 4 28 16 16 28 4 16Z' fill='none' stroke='%23bfdf91' stroke-width='3'/%3E%3C/svg%3E"

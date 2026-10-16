@@ -12,10 +12,17 @@ import { TransferService } from '../application/transfers.js';
 import { SteamActionsService } from '../application/steam-actions.js';
 import { SteamAccount } from './steam-account.js';
 import { SteamCatalog } from './steam-catalog.js';
+import { SettingsService } from '../application/settings.js';
+import { SettingsStore } from './settings-store.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const app = Fastify({ logger: false, bodyLimit: 1024 * 1024 });
 const library = new LocalLibrary();
 await library.init();
+const settings = new SettingsService(
+  new SettingsStore(path.join(root, '.cache/settings.json')),
+  library,
+);
+await settings.initialize();
 const service = new ModService(
   library,
   new SteamWorkshop({ cacheFile: path.join(root, '.cache/workshop.json') }),
@@ -48,9 +55,11 @@ app.setErrorHandler((error, req, reply) => {
   reply.code(400).send({ error: message });
 });
 app.get('/api/overview', async (req) => {
-  const { save } = req.query as { save?: string };
-  return service.overview(save);
+  const { save, refresh } = req.query as { save?: string; refresh?: string };
+  return service.overview(save, refresh === '1');
 });
+app.get('/api/settings', async () => settings.get());
+app.post('/api/settings', async (req) => settings.update(requestBody(req.body).paths));
 app.post('/api/transfers/export', async (req) => {
   const body = requestBody(req.body);
   if (typeof body.saveId !== 'string' || typeof body.revision !== 'string')
@@ -94,6 +103,20 @@ app.post('/api/remove', async (req) => {
     throw Error('Requête invalide.');
   return service.remove(saveId, ids, revision);
 });
+for (const route of ['add', 'add/validate']) {
+  app.post(`/api/${route}`, async (req) => {
+    const body = requestBody(req.body);
+    if (
+      typeof body.saveId !== 'string' ||
+      typeof body.revision !== 'string' ||
+      typeof body.id !== 'string'
+    )
+      throw Error('Requête invalide.');
+    return route === 'add'
+      ? service.add(body.saveId, body.id, body.revision)
+      : service.validateAdd(body.saveId, body.id, body.revision);
+  });
+}
 for (const route of ['reorder', 'reorder/validate']) {
   app.post(`/api/${route}`, async (req) => {
     const body = req.body as { saveId?: unknown; ids?: unknown; revision?: unknown } | null;

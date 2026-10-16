@@ -20,5 +20,20 @@ export default defineConfig({
       },
     },
   },
-  build: { outDir: '../dist', emptyOutDir: true },
+  build: {
+    outDir: '../dist',
+    emptyOutDir: true,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // This browser-only app has no React Server Component boundary to preserve.
+        if (
+          warning.code === 'MODULE_LEVEL_DIRECTIVE' &&
+          /["']use client["']/.test(warning.message) &&
+          warning.id?.replaceAll('\\', '/').includes('/node_modules/@radix-ui/')
+        )
+          return;
+        warn(warning);
+      },
+    },
+  },
 });

@@ -1,3 +1,4 @@
+import { Tooltip } from './ui/Tooltip';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Mod, WorkshopDetail, LoadOrderViolation } from '../src/domain/mods';
 import { normalize } from '../src/domain/mods';
@@ -275,27 +276,39 @@ export function OrderEditor(props: Props) {
                       </button>
                     )}
                   </div>
-                  <button
-                    className="button"
-                    disabled={!draft.past.length}
-                    onClick={() => dispatch({ type: 'undo' })}
+                  <Tooltip
+                    content={t(
+                      'Annule le dernier déplacement dans le brouillon, sans modifier la sauvegarde.',
+                    )}
                   >
-                    {t('↶ Annuler')}
-                  </button>
-                  <button
-                    className="button"
-                    disabled={!draft.future.length}
-                    onClick={() => dispatch({ type: 'redo' })}
+                    <button
+                      className="button"
+                      disabled={!draft.past.length}
+                      onClick={() => dispatch({ type: 'undo' })}
+                    >
+                      {t('↶ Annuler')}
+                    </button>
+                  </Tooltip>
+                  <Tooltip content={t('Rétablit le dernier déplacement annulé dans le brouillon.')}>
+                    <button
+                      className="button"
+                      disabled={!draft.future.length}
+                      onClick={() => dispatch({ type: 'redo' })}
+                    >
+                      {t('↷ Rétablir')}
+                    </button>
+                  </Tooltip>
+                  <Tooltip
+                    content={t('Restaure le brouillon à l’ordre enregistré dans la sauvegarde.')}
                   >
-                    {t('↷ Rétablir')}
-                  </button>
-                  <button
-                    className="button"
-                    disabled={!changed}
-                    onClick={() => dispatch({ type: 'reset', ids: props.ids })}
-                  >
-                    {t('Ordre initial')}
-                  </button>
+                    <button
+                      className="button"
+                      disabled={!changed}
+                      onClick={() => dispatch({ type: 'reset', ids: props.ids })}
+                    >
+                      {t('Ordre initial')}
+                    </button>
+                  </Tooltip>
                 </div>
                 <div className="order-legend" aria-label={t('Légende des couleurs')}>
                   <span className="legend-new">{t('Rouge : nouvelle violation bloquante')}</span>

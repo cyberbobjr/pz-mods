@@ -27,6 +27,10 @@ export function Dialog({
       );
     (focusable()[0] || ref.current)?.focus();
     const handleKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.key === 'Escape' && ref.current?.querySelector('[data-ui-popup-open="true"]'))
+        return;
+      if (event.key === 'Tab' && ref.current?.querySelector('[data-ui-select-open="true"]')) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         event.stopImmediatePropagation();

@@ -4,6 +4,19 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { createRoot } from 'react-dom/client';
 import type { Mod, Save, Issue, WorkshopDetail } from '../src/domain/mods';
 import './style.css';
+import './themes.css';
+import './ui/components.css';
+import { Select } from './ui/Select';
+import { Tooltip } from './ui/Tooltip';
+import { applyTheme, initialTheme } from './theme';
+import { SettingsPage } from './SettingsPage';
+import { AddModDialog } from './AddModDialog';
+import {
+  readNavigationState,
+  writeNavigationState,
+  navigationContextKey,
+  type NavigationTab,
+} from './navigation-state';
 import { Dialog } from './Dialog';
 import { ModDetail } from './ModDetail';
 import { OrderEditor, type OrderValidation } from './OrderEditor';
@@ -48,7 +61,44 @@ function matchesActive(mod: Mod, ids: string[]) {
 }
 function App() {
   const { t, language, setLanguage } = useI18n();
+  const [theme, setTheme] = useState(initialTheme);
+  const [section, setSection] = useState<'library' | 'settings'>(() => {
+    try {
+      return localStorage.getItem('pz-mods-section') === 'settings' ? 'settings' : 'library';
+    } catch {
+      return 'library';
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('pz-mods-section', section);
+    } catch {
+      /* Navigation stays usable. */
+    }
+  }, [section]);
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+  const [initialNavigation] = useState(readNavigationState);
+  const contexts = useRef(initialNavigation.contexts || {});
+  const [selectedSave, setSelectedSave] = useState(initialNavigation.saveId);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [adding, setAdding] = useState<{
+    save: { id: string; name: string; revision: string };
+    initialId?: string;
+  }>();
+  function openAdd(mod?: Mod) {
+    if (!data?.selected) return;
+    setAdding({
+      save: {
+        id: data.selected,
+        name: data.saves.find((save) => save.id === data.selected)?.name || data.selected,
+        revision: data.revision,
+      },
+      initialId: mod ? (mod.workshopId ? `\\${mod.workshopId}/${mod.id}` : mod.id) : undefined,
+    });
+    setDetail(undefined);
+  }
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem('pz-mods-sidebar-collapsed') === 'true';
@@ -69,9 +119,9 @@ function App() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState<{ key: string; values: Record<string, string> }>();
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialNavigation.search);
   const searchRef = useRef<HTMLInputElement>(null);
-  const [tab, setTab] = useState('active');
+  const [tab, setTab] = useState<NavigationTab>(initialNavigation.tab);
   const [view, setView] = useState<'cards' | 'list'>(() => {
     try {
       return localStorage.getItem('pz-mods-view') === 'list' ? 'list' : 'cards';
@@ -87,7 +137,28 @@ function App() {
       // The view remains usable when browser storage is unavailable.
     }
   }
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialNavigation.page);
+  useEffect(() => {
+    const key = navigationContextKey(selectedSave, tab);
+    contexts.current[key] = { search, page };
+    writeNavigationState({
+      version: 1,
+      tab,
+      search,
+      page,
+      saveId: selectedSave,
+      contexts: contexts.current,
+    });
+  }, [tab, search, page, selectedSave]);
+  function changeContext(nextTab: NavigationTab, nextSave = selectedSave) {
+    setSection('library');
+    contexts.current[navigationContextKey(selectedSave, tab)] = { search, page };
+    const next = contexts.current[navigationContextKey(nextSave, nextTab)];
+    setTab(nextTab);
+    setSearch(next?.search || '');
+    setPage(next?.page || 1);
+    setSelectedSave(nextSave);
+  }
   const [sortMode, setSortMode] = useState(() => {
     try {
       return readSortMode(localStorage.getItem(SORT_STORAGE_KEY));
@@ -145,22 +216,49 @@ function App() {
     },
     [orderEditor, t],
   );
-  async function load(id?: string) {
+  const loadSequence = useRef(0);
+  async function load(id?: string, restore = false, force = false) {
+    const sequence = ++loadSequence.current;
     setLoading(true);
     setError('');
     try {
-      setData(await api('/api/overview' + (id ? '?save=' + encodeURIComponent(id) : '')));
+      let overview: Overview;
+      try {
+        const query = new URLSearchParams();
+        if (id) query.set('save', id);
+        if (force) query.set('refresh', '1');
+        overview = await api('/api/overview' + (query.size ? '?' + query : ''));
+      } catch (reason) {
+        if (!restore || !id) throw reason;
+        overview = await api('/api/overview');
+      }
+      if (sequence !== loadSequence.current) return;
+      if (restore && id && overview.selected !== id) {
+        const restored = contexts.current[navigationContextKey(overview.selected, tab)];
+        setSearch(restored?.search || '');
+        setPage(restored?.page || 1);
+      }
+      setData(overview);
+      setSelectedSave(overview.selected);
       setChecked(new Set());
-      setPage(1);
     } catch (e) {
-      setError(String((e as Error).message));
+      if (sequence === loadSequence.current) {
+        setError(String((e as Error).message));
+        if (data && id && id !== data.selected) {
+          const previous = contexts.current[navigationContextKey(data.selected, tab)];
+          setSelectedSave(data.selected);
+          setSearch(previous?.search || '');
+          setPage(previous?.page || 1);
+        }
+      }
     } finally {
-      setLoading(false);
+      if (sequence === loadSequence.current) setLoading(false);
     }
   }
+  const initialLoad = useRef(load);
   useEffect(() => {
-    load();
-  }, []);
+    void initialLoad.current(initialNavigation.saveId, true);
+  }, [initialNavigation.saveId]);
   const active = useMemo(
     () => new Set(data?.active.map((i) => i.replace(/^\\+/, '').replace(/^\d+\//, '')) || []),
     [data],
@@ -221,6 +319,9 @@ function App() {
     language,
   );
   const pagination = paginate(parentGroups.length, page, pageSize);
+  useEffect(() => {
+    if (data && !loading && page !== pagination.page) setPage(pagination.page);
+  }, [data, loading, page, pagination.page]);
   const shownGroups = parentGroups.slice(pagination.start, pagination.end);
   // Fetch metadata for the complete inventory so sorting is global, across all pages.
   const keys = all
@@ -322,24 +423,35 @@ function App() {
           ],
           ['issues', '\u25c7', t('Diagnostic'), data?.issues.length || 0],
         ].map(([id, icon, label, count]) => (
-          <button
-            aria-label={`${label} (${count})`}
-            title={String(label)}
-            aria-current={tab === id ? 'page' : undefined}
-            className={'nav ' + (tab === id ? 'selected' : '')}
-            key={id}
-            onClick={() => {
-              setTab(String(id));
-              setPage(1);
-            }}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              {icon}
-            </span>
-            <span className="nav-text">{label}</span>
-            <b aria-hidden="true">{count}</b>
-          </button>
+          <Tooltip key={id} content={String(label)} side="right">
+            <button
+              aria-label={`${label} (${count})`}
+              aria-current={section === 'library' && tab === id ? 'page' : undefined}
+              className={'nav ' + (section === 'library' && tab === id ? 'selected' : '')}
+              key={id}
+              onClick={() => {
+                changeContext(id as NavigationTab);
+              }}
+            >
+              <span className="nav-icon" aria-hidden="true">
+                {icon}
+              </span>
+              <span className="nav-text">{label}</span>
+              <b aria-hidden="true">{count}</b>
+            </button>
+          </Tooltip>
         ))}
+        <button
+          className={'nav settings-nav ' + (section === 'settings' ? 'selected' : '')}
+          aria-current={section === 'settings' ? 'page' : undefined}
+          aria-label={t('Configuration')}
+          onClick={() => setSection('settings')}
+        >
+          <span className="nav-icon" aria-hidden="true">
+            ⚙
+          </span>
+          <span className="nav-text">{t('Configuration')}</span>
+        </button>
         <div className="side-bottom">
           <span className="dot" /> {t('CONNEXION LOCALE')}
           <small>
@@ -352,348 +464,407 @@ function App() {
       </aside>
       <main>
         <header className="app-header">
-          <label className="language-select">
-            {t('Langue')}
-            <select
-              aria-label={t('Langue de l’interface')}
-              value={language}
-              onChange={(event) => setLanguage(event.target.value as 'fr' | 'en')}
-            >
-              <option value="fr">Français</option>
-              <option value="en">English</option>
-            </select>
-          </label>
           <div className="breadcrumb">
             {t('BIBLIOTHÈQUE')}
-            <span>/</span> {t('GESTION DES MODS')}
+            <span>/</span> {section === 'settings' ? t('Configuration') : t('GESTION DES MODS')}
           </div>
-          <button className="button" disabled={loading} onClick={() => load(data?.selected)}>
-            {'\u21bb'} {t('Actualiser')}
-          </button>
+          <Tooltip
+            content={t(
+              'Relire les sauvegardes et les mods installés en conservant votre navigation.',
+            )}
+          >
+            <button
+              className="button"
+              disabled={loading}
+              onClick={() => load(data?.selected, false, true)}
+            >
+              {'\u21bb'} {t('Actualiser')}
+            </button>
+          </Tooltip>
           <button className="button" disabled={loading} onClick={() => setTransferOpen(true)}>
             {t('Importer / exporter')}
           </button>
         </header>
-        <section className="hero">
-          <div>
-            <div className="eyebrow">{t('MOINS DE CONFLITS. PLUS DE SURVIE.')}</div>
-            <h1>
-              {t('Votre arsenal,')}
-              <br />
-              <em>{t('sous contrôle.')}</em>
-            </h1>
-            <p>
-              {t('Explorez vos mods, vérifiez leurs prérequis et faites')}
-              <br className="desktop" /> {t('le tri dans votre prochaine apocalypse.')}
-            </p>
-          </div>
-          <div className="save-panel">
-            <label htmlFor="save">{t('SAUVEGARDE SOLO')}</label>
-            <select
-              id="save"
-              value={data?.selected || ''}
-              disabled={loading}
-              onChange={(e) => load(e.target.value)}
-            >
-              {data?.saves.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.mode} / {s.name}
-                </option>
-              ))}
-            </select>
+        {section === 'settings' && (
+          <SettingsPage
+            language={language}
+            onLanguageChange={setLanguage}
+            theme={theme}
+            onThemeChange={setTheme}
+            onPathsChanged={() => {
+              setDetail(undefined);
+              setOrderEditor(undefined);
+              setAdding(undefined);
+              setSearch('');
+              setPage(1);
+              void load();
+            }}
+          />
+        )}
+        <div hidden={section !== 'library'}>
+          <section className="hero">
             <div>
-              <span className="dot" /> {active.size} {t('mods actifs')}{' '}
-              <span className="save-version">
-                {t('Build locale')} {data?.version || '—'}
-              </span>
+              <div className="eyebrow">{t('MOINS DE CONFLITS. PLUS DE SURVIE.')}</div>
+              <h1>
+                {t('Votre arsenal,')}
+                <br />
+                <em>{t('sous contrôle.')}</em>
+              </h1>
+              <p>
+                {t('Explorez vos mods, vérifiez leurs prérequis et faites')}
+                <br className="desktop" /> {t('le tri dans votre prochaine apocalypse.')}
+              </p>
             </div>
-            <small>{t('Version locale utilisée pour choisir les variantes des mods.')}</small>
-          </div>
-        </section>
-        {error && (
-          <div role="alert" className="alert error">
-            {translateError(error)}
-            <button aria-label={t('Masquer l’erreur')} onClick={() => setError('')}>
-              {t('×')}
-            </button>
-          </div>
-        )}
-        {notice && (
-          <div role="status" className="alert">
-            {t(notice.key, notice.values)}
-            <button aria-label={t('Masquer la notification')} onClick={() => setNotice(undefined)}>
-              {t('×')}
-            </button>
-          </div>
-        )}
-        <section className="stats">
-          <button
-            onClick={() => {
-              setTab('active');
-              setPage(1);
-            }}
-          >
-            <span>{t('MODS ACTIFS')}</span>
-            <strong>
-              {active.size}
-              <small>{t('dans cette sauvegarde')}</small>
-            </strong>
-          </button>
-          <button
-            onClick={() => {
-              setTab('unused');
-              setPage(1);
-            }}
-          >
-            <span>{t('À EXPLORER')}</span>
-            <strong>
-              {all.filter((m) => !isActive(m)).length}
-              <small>{t('installés, hors sauvegarde')}</small>
-            </strong>
-          </button>
-          <button
-            className={errors ? 'stat-warning' : ''}
-            onClick={() => {
-              setTab('issues');
-              setPage(1);
-            }}
-          >
-            <span>{t('DIAGNOSTIC')}</span>
-            <strong>
-              {errors}
-              <small>{t('anomalies de métadonnées')}</small>
-            </strong>
-          </button>
-        </section>
-        {tab === 'issues' && (
-          <section className="diagnostic">
-            <h2>{t('État de la sauvegarde')}</h2>
-            <p>
-              {t('Analyse des prérequis, incompatibilités déclarées et fichiers installés.')}{' '}
-              {t('L’absence d’alerte ne garantit pas l’absence de conflits en jeu.')}
-            </p>
-            {data?.issues.length === 0 ? (
-              <div className="empty">{t('Aucune anomalie déclarée détectée.')}</div>
-            ) : (
-              data?.issues.map((i, n) => (
-                <button
-                  className="issue"
-                  key={n}
-                  onClick={() => setDetail(all.find((m) => m.id === i.modId))}
-                >
-                  <span className={'tag ' + (i.severity === 'error' ? 'danger' : '')}>
-                    {
-                      {
-                        missing: t('MANQUANT'),
-                        dependency: t('PRÉREQUIS'),
-                        incompatible: t('INCOMPATIBLE'),
-                        version: t('VERSION'),
-                        duplicate: t('DOUBLON'),
-                      }[i.kind]
-                    }
-                  </span>
-                  <div>
-                    <b>
-                      {name(i.modId)}
-                      {i.target ? ' \u2192 ' + name(i.target) : ''}
-                    </b>
-                    <p>{translateIssue(i, t)}</p>
-                  </div>
-                  <span>{'\u2197'}</span>
-                </button>
-              ))
-            )}
-          </section>
-        )}
-        {workshopError && (
-          <p className="workshop-notice" role="status">
-            {t(
-              'Steam Workshop est momentanément indisponible. Les informations locales restent accessibles.',
-            )}
-          </p>
-        )}
-        <section className="library">
-          <div className="section-head">
-            <h2>
-              {tab === 'active'
-                ? t('Dans votre sauvegarde')
-                : tab === 'unused'
-                  ? t('À côté de votre partie')
-                  : tab === 'missing'
-                    ? t('Mods manquants')
-                    : tab === 'issues'
-                      ? t('Mods à examiner')
-                      : t('Tous vos mods')}{' '}
-              <span>{filtered.length}</span>
-            </h2>
-            <div className="search-field">
-              <input
-                ref={searchRef}
-                aria-label={t('Rechercher un mod')}
-                placeholder={t('Rechercher un nom, un ID…')}
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
+            <div className="save-panel">
+              <label htmlFor="save">{t('SAUVEGARDE SOLO')}</label>
+              <Select
+                id="save"
+                label={t('SAUVEGARDE SOLO')}
+                value={data?.selected || ''}
+                disabled={loading}
+                onValueChange={(value) => {
+                  changeContext(tab, value);
+                  void load(value);
                 }}
+                options={(data?.saves || []).map((s) => ({
+                  value: s.id,
+                  label: `${s.mode} / ${s.name}`,
+                }))}
               />
-              {search && (
+              <div>
+                <span className="dot" /> {active.size} {t('mods actifs')}{' '}
+                <span className="save-version">
+                  {t('Build locale')} {data?.version || '—'}
+                </span>
+              </div>
+              <small>{t('Version locale utilisée pour choisir les variantes des mods.')}</small>
+            </div>
+          </section>
+          {error && (
+            <div role="alert" className="alert error">
+              {translateError(error)}
+              <button aria-label={t('Masquer l’erreur')} onClick={() => setError('')}>
+                {t('×')}
+              </button>
+            </div>
+          )}
+          {notice && (
+            <div role="status" className="alert">
+              {t(notice.key, notice.values)}
+              <button
+                aria-label={t('Masquer la notification')}
+                onClick={() => setNotice(undefined)}
+              >
+                {t('×')}
+              </button>
+            </div>
+          )}
+          <section className="stats">
+            <button
+              onClick={() => {
+                changeContext('active');
+              }}
+            >
+              <span>{t('MODS ACTIFS')}</span>
+              <strong>
+                {active.size}
+                <small>{t('dans cette sauvegarde')}</small>
+              </strong>
+            </button>
+            <button
+              onClick={() => {
+                changeContext('unused');
+              }}
+            >
+              <span>{t('À EXPLORER')}</span>
+              <strong>
+                {all.filter((m) => !isActive(m)).length}
+                <small>{t('installés, hors sauvegarde')}</small>
+              </strong>
+            </button>
+            <button
+              className={errors ? 'stat-warning' : ''}
+              onClick={() => {
+                changeContext('issues');
+              }}
+            >
+              <span>{t('DIAGNOSTIC')}</span>
+              <strong>
+                {errors}
+                <small>{t('anomalies de métadonnées')}</small>
+              </strong>
+            </button>
+          </section>
+          {tab === 'issues' && (
+            <section className="diagnostic">
+              <h2>{t('État de la sauvegarde')}</h2>
+              <p>
+                {t('Analyse des prérequis, incompatibilités déclarées et fichiers installés.')}{' '}
+                {t('L’absence d’alerte ne garantit pas l’absence de conflits en jeu.')}
+              </p>
+              {data?.issues.length === 0 ? (
+                <div className="empty">{t('Aucune anomalie déclarée détectée.')}</div>
+              ) : (
+                data?.issues.map((i, n) => (
+                  <button
+                    className="issue"
+                    key={n}
+                    onClick={() => setDetail(all.find((m) => m.id === i.modId))}
+                  >
+                    <span className={'tag ' + (i.severity === 'error' ? 'danger' : '')}>
+                      {
+                        {
+                          missing: t('MANQUANT'),
+                          dependency: t('PRÉREQUIS'),
+                          incompatible: t('INCOMPATIBLE'),
+                          version: t('VERSION'),
+                          duplicate: t('DOUBLON'),
+                        }[i.kind]
+                      }
+                    </span>
+                    <div>
+                      <b>
+                        {name(i.modId)}
+                        {i.target ? ' \u2192 ' + name(i.target) : ''}
+                      </b>
+                      <p>{translateIssue(i, t)}</p>
+                    </div>
+                    <span>{'\u2197'}</span>
+                  </button>
+                ))
+              )}
+            </section>
+          )}
+          {workshopError && (
+            <p className="workshop-notice" role="status">
+              {t(
+                'Steam Workshop est momentanément indisponible. Les informations locales restent accessibles.',
+              )}
+            </p>
+          )}
+          <section className="library" key={tab}>
+            <div className="section-head">
+              <h2>
+                {tab === 'active'
+                  ? t('Dans votre sauvegarde')
+                  : tab === 'unused'
+                    ? t('À côté de votre partie')
+                    : tab === 'missing'
+                      ? t('Mods manquants')
+                      : tab === 'issues'
+                        ? t('Mods à examiner')
+                        : t('Tous vos mods')}{' '}
+                <span>{filtered.length}</span>
+              </h2>
+              <div className="search-field">
+                <input
+                  ref={searchRef}
+                  aria-label={t('Rechercher un mod')}
+                  placeholder={t('Rechercher un nom, un ID…')}
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    className="search-clear"
+                    aria-label={t('Effacer la recherche')}
+                    onClick={() => {
+                      setSearch('');
+                      setPage(1);
+                      searchRef.current?.focus();
+                    }}
+                  >
+                    {t('Effacer ×')}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="toolbar">
+              <span>
+                {loading
+                  ? t('Analyse des fichiers locaux…')
+                  : t('{{parents}} éléments parents · {{ids}} IDs correspondant au filtre', {
+                      parents: parentGroups.length,
+                      ids: filtered.length,
+                    })}
+              </span>
+              <label className="page-size-control sort-control">
+                {t('Trier par')}
+                <Select
+                  label={t('Trier par')}
+                  value={effectiveSort}
+                  onValueChange={changeSort}
+                  options={[
+                    {
+                      value: 'save',
+                      label: t('Ordre de la sauvegarde'),
+                      disabled: tab !== 'active' || !data?.selected,
+                    },
+                    { value: 'updated-desc', label: t('Mise à jour : plus récentes') },
+                    { value: 'updated-asc', label: t('Mise à jour : plus anciennes') },
+                    { value: 'name-asc', label: t('Nom : A → Z') },
+                    { value: 'name-desc', label: t('Nom : Z → A') },
+                  ]}
+                />
+              </label>
+              <label className="page-size-control">
+                {t('Éléments par page')}
+                <Select
+                  label={t('Éléments par page')}
+                  value={String(pageSize)}
+                  onValueChange={changePageSize}
+                  options={PAGE_SIZES.map((size) => ({ value: String(size), label: String(size) }))}
+                />
+              </label>
+              <div className="view-switch" role="group" aria-label={t('Mode d’affichage')}>
                 <button
                   type="button"
-                  className="search-clear"
-                  aria-label={t('Effacer la recherche')}
+                  aria-pressed={view === 'cards'}
+                  onClick={() => changeView('cards')}
+                >
+                  {t('▦ Cartes')}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={view === 'list'}
+                  onClick={() => changeView('list')}
+                >
+                  {t('☰ Liste')}
+                </button>
+              </div>
+              <Tooltip
+                content={t(
+                  'Activer un identifiant de mod dans la sauvegarde sélectionnée, après vérification.',
+                )}
+              >
+                <button
+                  className="button primary"
+                  disabled={loading || !data?.selected}
+                  onClick={() => openAdd()}
+                >
+                  {t('＋ Ajouter un mod')}
+                </button>
+              </Tooltip>
+              {tab === 'active' && (
+                <button
+                  className="button"
+                  disabled={loading || !data?.selected || data.active.length < 2}
                   onClick={() => {
-                    setSearch('');
-                    setPage(1);
-                    searchRef.current?.focus();
+                    if (!data?.selected) return;
+                    setOrderEditor({
+                      saveId: data.selected,
+                      revision: data.revision,
+                      ids: [...data.active],
+                      name:
+                        data.saves.find((save) => save.id === data.selected)?.name || data.selected,
+                    });
                   }}
                 >
-                  {t('Effacer ×')}
+                  {t('↕ Modifier l’ordre')}
+                </button>
+              )}
+              {checked.size > 0 && (
+                <button className="button destructive" onClick={() => setConfirm(true)}>
+                  {t('Retirer {{count}} ID(s) de la sauvegarde', { count: checked.size })}
                 </button>
               )}
             </div>
-          </div>
-          <div className="toolbar">
-            <span>
-              {loading
-                ? t('Analyse des fichiers locaux…')
-                : t('{{parents}} éléments parents · {{ids}} IDs correspondant au filtre', {
-                    parents: parentGroups.length,
-                    ids: filtered.length,
-                  })}
-            </span>
-            <label className="page-size-control">
-              {t('Trier par')}
-              <select value={effectiveSort} onChange={(event) => changeSort(event.target.value)}>
-                <option value="save" disabled={tab !== 'active' || !data?.selected}>
-                  {t('Ordre de la sauvegarde')}
-                </option>
-                <option value="updated-desc">{t('Mise à jour : plus récentes')}</option>
-                <option value="updated-asc">{t('Mise à jour : plus anciennes')}</option>
-                <option value="name-asc">{t('Nom : A → Z')}</option>
-                <option value="name-desc">{t('Nom : Z → A')}</option>
-              </select>
-            </label>
-            <label className="page-size-control">
-              {t('Éléments par page')}
-              <select value={pageSize} onChange={(event) => changePageSize(event.target.value)}>
-                {PAGE_SIZES.map((size) => (
-                  <option value={size} key={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="view-switch" role="group" aria-label={t('Mode d’affichage')}>
-              <button
-                type="button"
-                aria-pressed={view === 'cards'}
-                onClick={() => changeView('cards')}
-              >
-                {t('▦ Cartes')}
-              </button>
-              <button
-                type="button"
-                aria-pressed={view === 'list'}
-                onClick={() => changeView('list')}
-              >
-                {t('☰ Liste')}
-              </button>
-            </div>
-            {tab === 'active' && (
+            {loading && !data && (
+              <div className="loading-state" role="status">
+                <span className="loading-dot" />{' '}
+                {t('Lecture de vos sauvegardes et de votre bibliothèque locale…')}
+              </div>
+            )}
+            <p className="grouping-note">
+              {tab === 'active' && effectiveSort === 'save'
+                ? t(
+                    'Un Workshop ID par ligne ou carte, avec tous ses sous-mods. Les tags affichent leur état et leur position dans la sauvegarde. Les parents sont triés par leur premier sous-mod actif ; consultez l’éditeur pour la séquence complète.',
+                  )
+                : t(
+                    'Un parent par ligne ou carte. Tous ses sous-mods installés restent visibles, même désactivés. Cliquez sur un tag pour ouvrir sa fiche.',
+                  )}
+            </p>
+            {(effectiveSort === 'updated-asc' || effectiveSort === 'updated-desc') && (
+              <p className="grouping-note">
+                {t(
+                  'Dates Steam pour les mods Workshop ; dernière modification de mod.info pour les projets locaux. Les dates inconnues apparaissent à la fin.',
+                )}
+              </p>
+            )}
+            <ParentLibrary
+              all={all}
+              groups={shownGroups}
+              view={view}
+              steam={steam}
+              checked={checked}
+              issueIds={issueIds}
+              loading={loading}
+              activeIds={data?.active || []}
+              isActive={isActive}
+              onDetail={setDetail}
+              onToggle={toggle}
+            />
+            {!loading && filtered.length === 0 && (
+              <div className="empty">{t('Aucun mod ne correspond à ce filtre.')}</div>
+            )}
+            <div className="pagination" aria-label={t('Pagination')}>
+              <span className="pagination-range">
+                {t('{{start}}–{{end}} sur {{total}} parents', {
+                  start: parentGroups.length ? pagination.start + 1 : 0,
+                  end: pagination.end,
+                  total: parentGroups.length,
+                })}
+              </span>
               <button
                 className="button"
-                disabled={loading || !data?.selected || data.active.length < 2}
-                onClick={() => {
-                  if (!data?.selected) return;
-                  setOrderEditor({
-                    saveId: data.selected,
-                    revision: data.revision,
-                    ids: [...data.active],
-                    name:
-                      data.saves.find((save) => save.id === data.selected)?.name || data.selected,
-                  });
-                }}
+                disabled={pagination.page === 1}
+                onClick={() => setPage(pagination.page - 1)}
               >
-                {t('↕ Modifier l’ordre')}
+                {'\u2190'} {t('Précédent')}
               </button>
-            )}
-            {checked.size > 0 && (
-              <button className="button destructive" onClick={() => setConfirm(true)}>
-                {t('Retirer {{count}} ID(s) de la sauvegarde', { count: checked.size })}
+              <span>
+                {pagination.page} / {pagination.pageCount}
+              </span>
+              <button
+                className="button"
+                disabled={pagination.page === pagination.pageCount}
+                onClick={() => setPage(pagination.page + 1)}
+              >
+                {t('Suivant')}
+                {'\u2192'}
               </button>
-            )}
-          </div>
-          {loading && !data && (
-            <div className="loading-state" role="status">
-              <span className="loading-dot" />{' '}
-              {t('Lecture de vos sauvegardes et de votre bibliothèque locale…')}
             </div>
-          )}
-          <p className="grouping-note">
-            {tab === 'active' && effectiveSort === 'save'
-              ? t(
-                  'Un Workshop ID par ligne ou carte, avec tous ses sous-mods. Les tags affichent leur état et leur position dans la sauvegarde. Les parents sont triés par leur premier sous-mod actif ; consultez l’éditeur pour la séquence complète.',
-                )
-              : t(
-                  'Un parent par ligne ou carte. Tous ses sous-mods installés restent visibles, même désactivés. Cliquez sur un tag pour ouvrir sa fiche.',
-                )}
-          </p>
-          {(effectiveSort === 'updated-asc' || effectiveSort === 'updated-desc') && (
-            <p className="grouping-note">
-              {t(
-                'Dates Steam pour les mods Workshop ; dernière modification de mod.info pour les projets locaux. Les dates inconnues apparaissent à la fin.',
-              )}
-            </p>
-          )}
-          <ParentLibrary
-            groups={shownGroups}
-            view={view}
-            steam={steam}
-            checked={checked}
-            issueIds={issueIds}
-            loading={loading}
-            activeIds={data?.active || []}
-            isActive={isActive}
-            onDetail={setDetail}
-            onToggle={toggle}
-          />
-          {!loading && filtered.length === 0 && (
-            <div className="empty">{t('Aucun mod ne correspond à ce filtre.')}</div>
-          )}
-          <div className="pagination" aria-label={t('Pagination')}>
-            <span className="pagination-range">
-              {t('{{start}}–{{end}} sur {{total}} parents', {
-                start: parentGroups.length ? pagination.start + 1 : 0,
-                end: pagination.end,
-                total: parentGroups.length,
-              })}
-            </span>
-            <button
-              className="button"
-              disabled={pagination.page === 1}
-              onClick={() => setPage(pagination.page - 1)}
-            >
-              {'\u2190'} {t('Précédent')}
-            </button>
-            <span>
-              {pagination.page} / {pagination.pageCount}
-            </span>
-            <button
-              className="button"
-              disabled={pagination.page === pagination.pageCount}
-              onClick={() => setPage(pagination.page + 1)}
-            >
-              {t('Suivant')}
-              {'\u2192'}
-            </button>
-          </div>
-        </section>
-        <footer>
-          {t('Fait pour survivre à votre liste de mods.')}
-          <span>{t('LOCAL · PRIVÉ · PROJECT ZOMBOID')}</span>
-        </footer>
+          </section>
+          <footer>
+            {t('Fait pour survivre à votre liste de mods.')}
+            <span>{t('LOCAL · PRIVÉ · PROJECT ZOMBOID')}</span>
+          </footer>
+        </div>
       </main>
+      {adding && (
+        <AddModDialog
+          save={adding.save}
+          initialId={adding.initialId}
+          onClose={() => setAdding(undefined)}
+          onAdded={async (backup?: string) => {
+            const saveId = adding.save.id;
+            setAdding(undefined);
+            await load(saveId);
+            setNotice(
+              backup
+                ? {
+                    key: 'Mod ajouté à la sauvegarde. Copie de sécurité : {{backup}}',
+                    values: { backup },
+                  }
+                : { key: 'Ce mod est déjà actif dans la sauvegarde.', values: {} },
+            );
+          }}
+        />
+      )}
       {transferOpen && (
         <TransferDialog
           save={
@@ -732,7 +903,7 @@ function App() {
           }}
         />
       )}
-      {detail && !confirm && !orderEditor && (
+      {detail && !confirm && !orderEditor && !adding && (
         <ModDetail
           mod={detail}
           members={
@@ -747,6 +918,7 @@ function App() {
             setChecked(new Set([mod.id]));
             setConfirm(true);
           }}
+          onAdd={data?.selected ? openAdd : undefined}
           onClose={() => setDetail(undefined)}
         />
       )}
