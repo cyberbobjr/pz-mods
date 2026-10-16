@@ -8,6 +8,7 @@ import { Dialog } from './Dialog';
 import { ModDetail } from './ModDetail';
 import { OrderEditor, type OrderValidation } from './OrderEditor';
 import { ParentLibrary } from './ParentLibrary';
+import { TransferDialog } from './TransferDialog';
 import { groupMods } from './parent-groups';
 import { orderParentGroups } from './load-order';
 import { PAGE_SIZES, PAGE_SIZE_STORAGE_KEY, readPageSize, paginate } from './pagination';
@@ -47,6 +48,7 @@ function matchesActive(mod: Mod, ids: string[]) {
 }
 function App() {
   const { t, language, setLanguage } = useI18n();
+  const [transferOpen, setTransferOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem('pz-mods-sidebar-collapsed') === 'true';
@@ -326,7 +328,7 @@ function App() {
         </div>
       </aside>
       <main>
-        <header>
+        <header className="app-header">
           <label className="language-select">
             {t('Langue')}
             <select
@@ -344,6 +346,9 @@ function App() {
           </div>
           <button className="button" disabled={loading} onClick={() => load(data?.selected)}>
             {'\u21bb'} {t('Actualiser')}
+          </button>
+          <button className="button" disabled={loading} onClick={() => setTransferOpen(true)}>
+            {t('Importer / exporter')}
           </button>
         </header>
         <section className="hero">
@@ -647,6 +652,20 @@ function App() {
           <span>{t('LOCAL · PRIVÉ · PROJECT ZOMBOID')}</span>
         </footer>
       </main>
+      {transferOpen && (
+        <TransferDialog
+          save={
+            data?.selected
+              ? {
+                  id: data.selected,
+                  name: data.saves.find((save) => save.id === data.selected)?.name || data.selected,
+                  revision: data.revision,
+                }
+              : undefined
+          }
+          onClose={() => setTransferOpen(false)}
+        />
+      )}
       {orderEditor && (
         <OrderEditor
           ids={orderEditor.ids}

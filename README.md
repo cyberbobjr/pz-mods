@@ -129,6 +129,19 @@ L’éditeur conserve **exactement les mêmes IDs**, y compris leurs préfixes W
 
 **Voir l’ordre sans le modifier :** les tags affichent leur position dans `mods.txt`. La bibliothèque conserve toujours **une seule ligne ou carte par Workshop ID**, avec tous ses sous-mods à droite. Les parents sont triés par leur premier sous-mod actif. L’éditeur montre la séquence exacte des IDs sans enregistrer de changement tant que vous ne confirmez pas.
 
+## Importer, exporter et créer une collection
+
+Le bouton **Importer / exporter** ouvre un aperçu avant toute action :
+
+- **Depuis une sauvegarde** : télécharger un fragment serveur `.ini` ou un manifeste JSON. `Mods=` conserve l’ordre des IDs Zomboid ; `WorkshopItems=` contient les parents Steam sans doublons.
+- **Depuis un serveur** : coller une liste ou charger un `.ini`, puis analyser. Seules les directives `Mods=` et `WorkshopItems=` sont retenues ; les mots de passe et autres paramètres sont ignorés.
+- **Abonnements** : connecter Steam, examiner les parents proposés, puis confirmer. Les éléments déjà abonnés sont conservés et les échecs sont détaillés par lot.
+- **Collection** : ouvrir le formulaire officiel Steam prérempli, terminer sa création dans le navigateur, puis revenir détecter la collection et confirmer l’ajout des parents sélectionnés.
+
+Microsoft Edge ou Google Chrome doit être installé pour ces actions Steam. La connexion s’effectue dans une fenêtre dédiée, avec son propre profil local `.cache/steam-profile/`. Aucun mot de passe ni cookie n’est transmis à l’interface de PZ Mods et aucune clé API n’est nécessaire. La création du formulaire reste une étape manuelle sur Steam ; l’application ne publie pas automatiquement une collection.
+
+Les mods locaux ne peuvent pas devenir des abonnements Workshop. Les IDs introuvables, ambigus ou absents de `WorkshopItems=` sont signalés. Une liste importée ne modifie aucune sauvegarde. Le fragment exporté ne remplace pas une configuration serveur complète : configurer séparément les cartes (`Map=`), les paramètres du monde et les mods locaux nécessaires. Une collection Steam ne conserve ni les sous-mods activés ni leur ordre : conserver aussi le fragment serveur ou le manifeste.
+
 ## Sauvegardes et restauration
 
 Avant une écriture, le backend vérifie que le jeu est fermé et que `mods.txt` n’a pas changé depuis l’analyse. Il crée ensuite une copie à côté du fichier :
@@ -164,7 +177,7 @@ La version **locale du jeu** sert à choisir les variantes de mods ; ce n’est 
 
 Les données déjà téléchargées restent utilisables si Steam est indisponible, même après expiration. Une première connexion est nécessaire pour les éléments jamais consultés. Les téléchargements simultanés d’un même poster sont regroupés.
 
-Pour vider le cache : arrêter le backend, supprimer uniquement le dossier `.cache/` du projet, puis relancer. Les sauvegardes et sources de mods restent dans leurs emplacements d’origine.
+Pour vider les métadonnées et posters : arrêter le backend, supprimer `.cache/workshop.json` et `.cache/posters/`, puis relancer. Le profil de connexion Steam est séparé dans `.cache/steam-profile/` ; le supprimer déconnecte ce navigateur dédié. Les sauvegardes et sources de mods restent dans leurs emplacements d’origine.
 
 ## Configuration
 
@@ -220,6 +233,7 @@ L’architecture hexagonale et les dépendances autorisées sont documentées da
 - Le serveur écoute uniquement sur **l’interface locale** et contrôle l’origine des mutations.
 - Aucune clé Steam, session Steam ou connexion au compte n’est nécessaire pour consulter les informations publiques.
 - Les sauvegardes, caches, dépendances et fichiers d’environnement sont exclus de Git.
+- Le profil Steam dédié contient des données de connexion locales : ne jamais partager `.cache/steam-profile/`. Les actions d’abonnement et de collection nécessitent une connexion Steam et une confirmation explicite dans l’application.
 - Les métadonnées Steam et posters sont récupérés par le backend ; les polices Google Fonts peuvent être chargées par le navigateur.
 - Les chemins de fichiers locaux sont visibles dans votre interface et peuvent apparaître dans vos captures : les vérifier avant de les partager.
 

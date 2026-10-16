@@ -8,6 +8,10 @@ import { SteamWorkshop } from './steam.js';
 import { ModService } from '../application/service.js';
 import { PosterCache } from './poster-cache.js';
 import { createHash } from 'node:crypto';
+import { TransferService } from '../application/transfers.js';
+import { SteamActionsService } from '../application/steam-actions.js';
+import { SteamAccount } from './steam-account.js';
+import { SteamCatalog } from './steam-catalog.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const app = Fastify({ logger: false, bodyLimit: 1024 * 1024 });
 const library = new LocalLibrary();
@@ -17,6 +21,15 @@ const service = new ModService(
   new SteamWorkshop({ cacheFile: path.join(root, '.cache/workshop.json') }),
   new PosterCache({ directory: path.join(root, '.cache/posters') }),
 );
+const transfers = new TransferService(library);
+const steamAccount = new SteamAccount(path.join(root, '.cache/steam-profile'));
+const steamActions = new SteamActionsService(steamAccount, new SteamCatalog());
+app.addHook('onClose', async () => steamAccount.close());
+
+function requestBody(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Requête invalide.');
+  return value as Record<string, unknown>;
+}
 app.addHook('onRequest', async (req, reply) => {
   const host = req.headers.host;
   if (!host || !/^(?:127\.0\.0\.1|localhost):\d+$/.test(host))
@@ -37,6 +50,28 @@ app.setErrorHandler((error, req, reply) => {
 app.get('/api/overview', async (req) => {
   const { save } = req.query as { save?: string };
   return service.overview(save);
+});
+app.post('/api/transfers/export', async (req) => {
+  const body = requestBody(req.body);
+  if (typeof body.saveId !== 'string' || typeof body.revision !== 'string')
+    throw Error('Requête invalide.');
+  return transfers.exportSave(body.saveId, body.revision);
+});
+app.post('/api/transfers/import', { bodyLimit: 2 * 1024 * 1024 }, async (req) => {
+  const body = requestBody(req.body);
+  if (typeof body.text !== 'string') throw Error('Requête invalide.');
+  return transfers.importServer(body.text);
+});
+app.get('/api/steam/status', async () => steamActions.status());
+app.post('/api/steam/connect', async () => steamActions.connect());
+app.post('/api/steam/subscribe', async (req) => steamActions.subscribe(requestBody(req.body).ids));
+app.post('/api/steam/collections/begin', async (req) =>
+  steamActions.beginCollection(requestBody(req.body).title),
+);
+app.get('/api/steam/collections/detect', async () => steamActions.detectCollection());
+app.post('/api/steam/collections/add', async (req) => {
+  const body = requestBody(req.body);
+  return steamActions.add(body.ids, body.collectionId);
 });
 app.post('/api/workshop', async (req) => {
   const { ids } = req.body as { ids: unknown };
