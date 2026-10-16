@@ -1,0 +1,59 @@
+.delete-collection-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 13px;
+  padding: 5px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: left;
+}
+.delete-collection-trigger:hover {
+  color: #e1aa91;
+}
+.delete-collection-trigger:disabled {
+  opacity: 0.4;
+}
+.delete-collection-dialog h2 {
+  font-size: 24px;
+  overflow-wrap: anywhere;
+}
+.delete-collection-dialog p {
+  font-size: 12px;
+}
+.delete-collection-scope {
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-sunken);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.delete-collection-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 19px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text);
+}
+.delete-collection-check input {
+  margin: 5px 0 0;
+  accent-color: var(--mint);
+  flex-shrink: 0;
+}
+.delete-collection-dialog .alert {
+  margin-top: 15px;
+}
+@media (max-width: 600px) {
+  .delete-collection-dialog .modal-actions {
+    flex-direction: column-reverse;
+  }
+  .delete-collection-dialog .modal-actions > .button {
+    width: 100%;
+  }
+}

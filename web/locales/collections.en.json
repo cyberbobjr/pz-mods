@@ -1,0 +1,20 @@
+{
+  "Seule une collection locale peut être supprimée.": "Only a local collection can be deleted.",
+  "Requête de suppression de collection invalide.": "Invalid collection deletion request.",
+  "Supprimer une collection locale": "Delete a local collection",
+  "COLLECTION LOCALE": "LOCAL COLLECTION",
+  "Supprimer « {{name}} » ?": "Delete \"{{name}}\"?",
+  "Seule cette collection sera retirée du fichier de profils du jeu. Les autres collections et les favoris seront conservés.": "Only this collection will be removed from the game's profiles file. Other collections and favorites will be preserved.",
+  "Vos sauvegardes, les fichiers des mods et vos abonnements Steam restent inchangés. Une copie de sécurité sera créée automatiquement avant la suppression.": "Your saves, mod files and Steam subscriptions remain unchanged. A backup will be created automatically before deletion.",
+  "Project Zomboid est fermé. Je confirme la suppression de cette collection locale.": "Project Zomboid is closed. I confirm deleting this local collection.",
+  "Annuler": "Cancel",
+  "Suppression…": "Deleting...",
+  "Supprimer la collection": "Delete collection",
+  "Suppression de la collection en cours.": "Deleting the collection.",
+  "Collection supprimée": "Collection deleted",
+  "Masquer la confirmation de suppression": "Dismiss deletion confirmation",
+  "Copie de sécurité": "Backup",
+  "Supprimer cette collection…": "Delete this collection...",
+  "Réponse de suppression inattendue. Actualisez les sources.": "Unexpected deletion response. Refresh the sources.",
+  "La collection a été supprimée. Actualisez les sources pour afficher le résultat.": "The collection was deleted. Refresh the sources to see the result."
+}

@@ -226,6 +226,14 @@ Un indicateur affiche **Enregistrement…**, puis **Modifications enregistrées*
 
 **La séquence enregistrée dans un profil n’est pas une garantie de chargement dans le jeu** : Project Zomboid recalcule l’ordre à l’activation du profil.
 
+### Supprimer une collection locale
+
+Sélectionner la collection, puis cliquer sur **Supprimer la collection** dans le panneau du sélecteur. La confirmation rappelle son nom et demande de fermer le jeu. L’application retire uniquement cette collection du fichier de profils, après vérification de sa révision et création d’une copie complète dans `backups/pz-mods/profiles/`. Les autres collections et les favoris sont conservés.
+
+![Confirmation de suppression d’une collection fictive, avec copie de secours et vérification que le jeu est fermé](docs/screenshot-delete-collection.png)
+
+Après suppression, le sélecteur revient à une source disponible. Aucun fichier de mod, abonnement Steam ou sauvegarde solo n’est supprimé. Le chemin de la copie de sécurité est indiqué dans la confirmation de réussite ; elle permet de restaurer le fichier de profils complet si nécessaire.
+
 ### Créer un profil de collection locale
 
 Dans **Importer / exporter → Exporter la sauvegarde → Exporter un profil de mods**, choisir un nom puis cliquer sur **Prévisualiser le profil**. L’export reprend les IDs de la sauvegarde, y compris les mods locaux, conserve les qualifications `123456789/ModId` et retire les antislashs initiaux utilisés dans certains `mods.txt`. Les doublons identiques sont retirés.

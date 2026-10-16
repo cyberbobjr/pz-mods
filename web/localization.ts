@@ -7,6 +7,7 @@ import settings from './locales/settings.en.json';
 import addMod from './locales/add-mod.en.json';
 import profiles from './locales/profiles.en.json';
 import sources from './locales/sources.en.json';
+import collections from './locales/collections.en.json';
 
 export type Language = 'fr' | 'en';
 export type Translator = (key: string, values?: Record<string, string | number>) => string;
@@ -20,6 +21,7 @@ export const english: Record<string, string> = {
   ...addMod,
   ...profiles,
   ...sources,
+  ...collections,
 };
 
 export function selectLanguage(stored: string | null, browser = 'fr'): Language {

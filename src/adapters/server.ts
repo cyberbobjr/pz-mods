@@ -69,6 +69,12 @@ app.get('/api/overview', async (req) => {
 });
 app.get('/api/settings', async () => settings.get());
 app.post('/api/mods/open-folder', async (req) => explorer.openModFolder(requestBody(req.body).key));
+app.post('/api/profiles/delete', async (req) => {
+  const body = requestBody(req.body);
+  if (typeof body.saveId !== 'string' || typeof body.revision !== 'string')
+    throw Error('Requête de suppression de collection invalide.');
+  return profiles.delete(body.saveId, body.revision);
+});
 for (const route of ['preview', 'export']) {
   app.post(`/api/profiles/${route}`, async (req) => {
     const body = requestBody(req.body);

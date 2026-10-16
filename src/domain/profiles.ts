@@ -126,3 +126,10 @@ export function insertProfile(
   const ending = lines.find((line) => line.ending)?.ending || '\n';
   return text + (text.endsWith('\n') ? '' : ending) + profile.profileText + ending;
 }
+
+export function deleteProfile(text: string, fileExists: boolean, name: string) {
+  if (validateProfileName(name) !== name) throw Error('Nom de profil invalide.');
+  const [target] = targetLines(readProfileLines(text, fileExists).slice(1), name);
+  if (!target) throw Error('Collection locale introuvable. Actualise la liste.');
+  return text.slice(0, target.start) + text.slice(target.end);
+}

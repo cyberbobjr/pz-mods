@@ -2,6 +2,7 @@ import {
   buildProfileFragment,
   insertProfile,
   profileExists,
+  deleteProfile,
   type ProfilePreview,
 } from '../domain/profiles.js';
 import type { LibraryPort } from './service.js';
@@ -69,6 +70,35 @@ export class ProfileService {
         await this.source(saveId, revision);
       });
       return { ...result, created: !exists, replaced: exists };
+    });
+  }
+  async delete(saveId: string, revision: string) {
+    if (typeof saveId !== 'string' || !/^collection:[a-f0-9]{24}$/.test(saveId))
+      throw Error('Seule une collection locale peut être supprimée.');
+    if (typeof revision !== 'string' || !revision)
+      throw Error('Requête de suppression de collection invalide.');
+    return this.library.withProfileMutation(async (userDir) => {
+      const source = (await this.library.saves()).find(
+        (item) => item.id === saveId && item.kind === 'collection',
+      );
+      if (!source) throw Error('Collection locale introuvable. Actualise la liste.');
+      const saved = await this.library.readSave(saveId);
+      if (saved.kind !== 'collection')
+        throw Error('Seule une collection locale peut être supprimée.');
+      const snapshot = await this.store.read(userDir);
+      if (saved.revision !== revision || snapshot.revision !== revision)
+        throw Error('Le fichier de profils a changé. Vérifie à nouveau l’aperçu.');
+      const next = deleteProfile(snapshot.text, snapshot.exists, source.name);
+      const result = await this.store.write(userDir, revision, next, async () => {
+        const current = await this.library.readSave(saveId);
+        if (current.kind !== 'collection' || current.revision !== revision)
+          throw Error('Le fichier de profils a changé. Vérifie à nouveau l’aperçu.');
+      });
+      if (!result.backup)
+        throw Error(
+          'Impossible d’enregistrer le profil. Vérifie les chemins et actualise l’aperçu.',
+        );
+      return { backup: result.backup, deletedId: saveId };
     });
   }
 }

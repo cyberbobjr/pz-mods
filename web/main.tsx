@@ -4,6 +4,11 @@ import { useSourceI18n, SourceProvider } from './source-context';
 import React, { useState, useEffect, useMemo, useCallback, useRef, useReducer } from 'react';
 import { sourceWriteReducer, type WritePhase } from './write-state';
 import { SourceWriteStatus } from './SourceWriteStatus';
+import {
+  DeleteCollectionDialog,
+  CollectionDeletedNotice,
+  type DeletedCollection,
+} from './DeleteCollectionDialog';
 import { createRoot } from 'react-dom/client';
 import type { Mod, Save, Issue, WorkshopDetail } from '../src/domain/mods';
 import './style.css';
@@ -68,12 +73,20 @@ function App() {
   const sourceKind = data?.saves.find((source) => source.id === data.selected)?.kind || 'save';
   const { t, language, setLanguage } = useSourceI18n(sourceKind);
   const [writes, dispatchWrite] = useReducer(sourceWriteReducer, { byId: {} });
+  const [deletingCollection, setDeletingCollection] = useState<{
+    id: string;
+    name: string;
+    revision: string;
+    kind: 'collection';
+  }>();
+  const [deletedCollection, setDeletedCollection] = useState<DeletedCollection>();
   function reportWrite(
     source: { id: string; name: string; kind?: Save['kind'] },
     phase: WritePhase | 'idle',
     details?: { backup?: string; message?: string; silent?: boolean },
   ) {
     if (source.kind !== 'collection') return;
+    setDeletedCollection(undefined);
     dispatchWrite(
       phase === 'idle'
         ? { type: 'idle', id: source.id }
@@ -582,6 +595,28 @@ function App() {
                     entry={data?.selected ? writes.byId[data.selected] : undefined}
                   />
                 )}
+                {sourceKind === 'collection' && (
+                  <button
+                    type="button"
+                    className="delete-collection-trigger"
+                    disabled={loading || busy}
+                    onClick={() => {
+                      const source = data?.saves.find((source) => source.id === data.selected);
+                      if (!source || source.kind !== 'collection' || !data) return;
+                      dispatchWrite({ type: 'dismiss' });
+                      setDeletedCollection(undefined);
+                      setDeletingCollection({
+                        id: source.id,
+                        name: source.name,
+                        revision: data.revision,
+                        kind: 'collection',
+                      });
+                    }}
+                  >
+                    <span aria-hidden="true">×</span>
+                    {t('Supprimer cette collection…')}
+                  </button>
+                )}
               </div>
             </section>
             {sourceKind === 'collection' && (
@@ -933,6 +968,44 @@ function App() {
             }}
           />
         )}
+        {deletingCollection && (
+          <DeleteCollectionDialog
+            source={deletingCollection}
+            onClose={() => setDeletingCollection(undefined)}
+            onDeleted={async (result) => {
+              const removed = deletingCollection;
+              if (result.deletedId !== removed.id)
+                throw new Error(t('Réponse de suppression inattendue. Actualisez les sources.'));
+              for (const navTab of ['active', 'all', 'unused', 'missing', 'issues'] as const)
+                delete contexts.current[navigationContextKey(removed.id, navTab)];
+              dispatchWrite({ type: 'idle', id: removed.id });
+              dispatchWrite({ type: 'dismiss' });
+              setNotice(undefined);
+              setChecked(new Set());
+              setDetail(undefined);
+              setOrderEditor(undefined);
+              setAdding(undefined);
+              setSelectedSave(undefined);
+              setSearch('');
+              setPage(1);
+              setData((current) =>
+                current
+                  ? {
+                      ...current,
+                      saves: current.saves.filter((source) => source.id !== removed.id),
+                      selected: undefined,
+                      active: [],
+                      revision: '',
+                      issues: [],
+                    }
+                  : current,
+              );
+              setDeletingCollection(undefined);
+              await load(undefined);
+              setDeletedCollection({ name: removed.name, backup: result.backup });
+            }}
+          />
+        )}
         {transferOpen && (
           <TransferDialog
             save={
@@ -947,6 +1020,7 @@ function App() {
             }
             onClose={() => setTransferOpen(false)}
             onProfileSaved={(profile) => {
+              setDeletedCollection(undefined);
               const source = data?.saves.find((source) => source.id === data.selected);
               if (source?.kind === 'collection' && source.name === profile.name && profile.replaced)
                 reportWrite(source, 'saved', { backup: profile.backup, silent: true });
@@ -1056,6 +1130,8 @@ function App() {
         )}
         {writes.toastId &&
           writes.byId[writes.toastId] &&
+          !deletingCollection &&
+          !deletedCollection &&
           !adding &&
           !orderEditor &&
           !confirm &&
@@ -1065,6 +1141,18 @@ function App() {
               toast
               entry={writes.byId[writes.toastId]}
               onDismiss={() => dispatchWrite({ type: 'dismiss' })}
+            />
+          )}
+        {deletedCollection &&
+          !deletingCollection &&
+          !adding &&
+          !orderEditor &&
+          !confirm &&
+          !transferOpen &&
+          !detail && (
+            <CollectionDeletedNotice
+              entry={deletedCollection}
+              onDismiss={() => setDeletedCollection(undefined)}
             />
           )}
       </div>
