@@ -1,7 +1,7 @@
 import { Tooltip } from './ui/Tooltip';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Mod, WorkshopDetail, LoadOrderViolation } from '../src/domain/mods';
-import { normalize } from '../src/domain/mods';
+import { autoSortLoadOrder, normalize } from '../src/domain/mods';
 import { Dialog } from './Dialog';
 import { loadPosition } from './load-order';
 import { orderDraftReducer } from './order-draft';
@@ -68,6 +68,7 @@ export function OrderEditor(props: Props) {
     ids: [...props.ids],
     future: [],
   });
+  const [sortError, setSortError] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [validation, setValidation] = useState<OrderValidation>();
   const [validatedIds, setValidatedIds] = useState<string[]>();
@@ -136,6 +137,17 @@ export function OrderEditor(props: Props) {
         position: to + 1,
       }),
     );
+  }
+  function autoSort() {
+    const result = autoSortLoadOrder(props.mods, draft.ids);
+    if (!result.ok) {
+      setSortError(result.blockedIds);
+      return;
+    }
+    setSortError([]);
+    setSaveError('');
+    dispatch({ type: 'reset', ids: result.ids });
+    setAnnouncement(t('Tri automatique terminé. Vérifiez le brouillon avant de l’enregistrer.'));
   }
   function close() {
     if (saving) return;
@@ -266,6 +278,19 @@ export function OrderEditor(props: Props) {
                   )}
                 </p>
                 <div className="order-tools">
+                  <Tooltip
+                    content={t(
+                      'Trie les IDs actifs selon require, loadAfter et loadBefore, sans ajouter de mod.',
+                    )}
+                  >
+                    <button
+                      className="button"
+                      disabled={saving || draft.ids.length < 2}
+                      onClick={autoSort}
+                    >
+                      {t('Trier automatiquement')}
+                    </button>
+                  </Tooltip>
                   <div className="search-field">
                     <input
                       aria-label={t('Rechercher dans l’ordre des mods')}
@@ -317,6 +342,14 @@ export function OrderEditor(props: Props) {
                     </button>
                   </Tooltip>
                 </div>
+                {sortError.length > 0 && (
+                  <p className="alert error" role="alert">
+                    {t(
+                      'Tri impossible : contraintes cycliques. IDs bloqués : {{ids}}. Le brouillon est conservé.',
+                      { ids: sortError.join(', ') },
+                    )}
+                  </p>
+                )}
                 <div className="order-legend" aria-label={t('Légende des couleurs')}>
                   <span className="legend-new">{t('Rouge : nouvelle violation bloquante')}</span>
                   <span className="legend-existing">{t('Orange : problème déjà présent')}</span>

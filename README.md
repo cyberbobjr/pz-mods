@@ -2,101 +2,19 @@
 
 # PZ Mods
 
-**Votre arsenal, sous contrôle.**
+**Your loadout, under control.**
 
-Un gestionnaire local pour explorer, diagnostiquer et organiser les mods de vos sauvegardes solo et collections locales de **Project Zomboid**.
+A local Project Zomboid mod manager for single-player saves and local collections.
 
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square)
-![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white)
-![Fastify](https://img.shields.io/badge/Fastify-5-202020?style=flat-square)
-![Windows](https://img.shields.io/badge/Windows-local-8AB86C?style=flat-square)
-![Languages](https://img.shields.io/badge/langues-FR%20%7C%20EN-C0E69A?style=flat-square)
-
-[Démarrer](#démarrage-rapide) · [Fonctionnalités](#fonctionnalités) · [Tri](#trier-la-bibliothèque) · [Import / export](#importer-exporter-et-créer-une-collection) · [Ordre des mods](#réorganiser-une-sauvegarde) · [Développement](#développement) · [Confidentialité](#confidentialité)
+English → [Français](README_fr.md)
 
 </div>
 
-![Bibliothèque de PZ Mods : navigation, sauvegarde, configuration, tri et sous-mods](docs/screenshot-library.png)
+![PZ Mods library with fictional demonstration data](docs/screenshot-library.png)
 
-_Capture réelle de l’application, avec des mods et une sauvegarde de démonstration fictifs._
+## Getting started
 
-| Repère | Fonctionnalité                                                                             |
-| ------ | ------------------------------------------------------------------------------------------ |
-| **1**  | Filtrer les mods actifs, installés, hors sauvegarde ou manquants ; ouvrir le diagnostic    |
-| **2**  | Choisir une sauvegarde solo et consulter sa version locale de référence                    |
-| **3**  | Ouvrir la configuration : langue, thèmes et dossiers analysés                              |
-| **4**  | Basculer entre cartes et tableau ; ouvrir l’éditeur d’ordre                                |
-| **5**  | Voir un seul parent avec ses sous-mods activés/désactivés et leurs positions de chargement |
-
-> Un élément Workshop peut contenir plusieurs sous-mods. PZ Mods distingue **le parent Steam**, **les IDs Zomboid** et **les projets locaux** pour que chaque action ait une portée claire.
-
-## Fonctionnalités
-
-| Explorer                                                     | Comprendre                                                | Organiser                                            |
-| ------------------------------------------------------------ | --------------------------------------------------------- | ---------------------------------------------------- |
-| Vues **cartes** et **tableau**, avec posters et descriptions | Prérequis actifs, inactifs ou manquants                   | Éditeur d’ordre par **glisser-déposer**              |
-| Parents Workshop regroupés, tags par sous-mod                | Incompatibilités déclarées et doublons d’IDs              | Flèches ↑ / ↓ et déplacement à une position précise  |
-| Recherche avec effacement rapide et filtres                  | Plages de versions et variantes Build 42                  | Annuler, rétablir et restaurer l’ordre initial       |
-| Mods Steam **et** projets de développement locaux            | Date de mise à jour Steam et date des métadonnées locales | Prévisualisation et copie de sécurité avant écriture |
-| Tri par nom, mise à jour ou ordre de sauvegarde              | Aperçu des associations sous-mods / parents Workshop      | Export serveur `.ini` et manifeste `.json`           |
-| Pagination et préférences mémorisées                         | Analyse d’une liste serveur, avec alertes de résolution   | Abonnements Steam et création guidée de collections  |
-
-L’application permet aussi **d’ajouter un modId à la sauvegarde courante**, avec aperçu et copie de sécurité, et d’identifier les mods qui utilisent un autre mod comme **prérequis**.
-
-Les filtres distinguent les mods **dans la sauvegarde**, **hors sauvegarde**, **manquants** et ceux à examiner dans le **diagnostic**. Le choix cartes/liste est mémorisé dans le navigateur.
-
-Le sélecteur **Éléments par page** propose 12, 24, 36, 60 ou 100 parents par page, en cartes comme en tableau. Ce choix est conservé entre les pages, filtres et sauvegardes, ainsi qu’au rafraîchissement. Un changement de taille revient à la première page et ne sépare jamais les sous-mods d’un même parent.
-
-La navigation latérale peut se replier en colonne d’icônes sur ordinateur. Les intitulés restent accessibles au survol et au clavier ; ce choix est également conservé au rafraîchissement.
-
-### Trier la bibliothèque
-
-Le sélecteur **Trier par** fonctionne en cartes comme en tableau :
-
-| Tri                               | Comportement                                                                                                    |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Ordre de la sauvegarde**        | Disponible dans « Dans la sauvegarde » ; chaque parent se place à la première position de ses sous-mods actifs. |
-| **Mise à jour : plus récentes**   | Date décroissante.                                                                                              |
-| **Mise à jour : plus anciennes**  | Date croissante.                                                                                                |
-| **Nom : A → Z** / **Nom : Z → A** | Tri sur le nom affiché du parent, avec prise en compte des accents et des nombres.                              |
-
-Le tri s’applique à toute la liste filtrée **avant pagination**, conserve les sous-mods regroupés et revient à la première page lors d’un changement. Le choix est mémorisé à la navigation et au rafraîchissement. Hors de la vue de sauvegarde, le choix « ordre de la sauvegarde » utilise temporairement le tri A à Z.
-
-Les dates proviennent de Steam pour les parents Workshop et de la dernière modification de `mod.info` pour les projets locaux. Pour un projet local contenant plusieurs sous-mods, la date la plus récente est retenue. Les dates inconnues restent à la fin dans les deux sens. Les métadonnées Steam de toute la bibliothèque sont chargées pour permettre un tri global ; le classement se précise à leur réception. **Trier l’affichage ne modifie jamais l’ordre enregistré dans la sauvegarde.**
-
-### Français et anglais
-
-Dans **Configuration → Apparence**, le sélecteur de langue permet de passer du **français** à l’**anglais** sans recharger la page. Le choix est conservé au rafraîchissement et à la prochaine ouverture dans le même navigateur. À la première visite, la langue du navigateur détermine la langue proposée.
-
-Les dates, boutons, messages de diagnostic et contrôles d’ordre sont traduits. Les noms, IDs et descriptions fournis par les créateurs de mods restent dans leur langue d’origine. Les traductions de l’interface se trouvent dans `web/locales/`.
-
-### Une interface personnalisable
-
-**Configuration → Apparence** propose quatre thèmes : **Survivant** (vert), **Nocturne** (bleu), **Améthyste** (violet) et **Cuivre**. Le changement est immédiat et le thème reste actif à la navigation et au rafraîchissement.
-
-![Configuration de l’apparence : langue et thème Nocturne dans les menus React personnalisés](docs/screenshot-appearance.png)
-
-Les menus déroulants et infobulles utilisent des composants React Radix personnalisés : navigation au clavier, sélection visible, fermeture avec Échap et animations d’ouverture. Les panneaux, onglets et boutons partagent les couleurs du thème et des transitions discrètes. Le réglage système **réduire les animations** est respecté.
-
-La barre de bibliothèque sépare les actions **Ajouter un mod / Modifier l’ordre** des réglages d’affichage. La recherche, le tri, la taille des pages et le choix cartes/liste sont alignés dans un panneau commun, qui se réorganise sur les petits écrans. Tous ces réglages conservent leurs préférences de navigation.
-
-![Barre de bibliothèque : actions regroupées, recherche et réglages d’affichage alignés](docs/screenshot-library-toolbar.png)
-
-### Retrouver sa navigation
-
-La page ouverte (bibliothèque ou configuration), la sauvegarde sélectionnée, la vue de bibliothèque, la recherche et le numéro de page sont mémorisés. Chaque vue retrouve sa propre recherche et sa page **pour chaque sauvegarde**. Le mode cartes/tableau, le tri, le nombre d’éléments par page, la langue, le thème et le repli de la barre latérale sont également conservés.
-
-Ces préférences restent dans le stockage local du navigateur, pour la même adresse et le même port. Si une sauvegarde a disparu, l’application revient à une sauvegarde disponible ; si une page n’existe plus après actualisation, elle revient à la dernière page valide. Les confirmations d’actions et les brouillons de modification ne sont pas réexécutés au rechargement.
-
-## Démarrage rapide
-
-### Prérequis
-
-- **Windows**, avec Project Zomboid installé via Steam.
-- **Node.js 24 ou plus récent**, avec npm.
-- Une sauvegarde **solo** contenant `mods.txt`, ou une collection locale enregistrée dans `Lua/pz_modlist_settings.cfg`.
-
-Aucune clé API Steam n’est nécessaire.
+Requires Windows, Steam Project Zomboid, and **Node.js 24+** with npm. No Steam API key is needed.
 
 ```powershell
 git clone https://github.com/cyberbobjr/pz-mods.git
@@ -106,246 +24,66 @@ npm run build
 npm start
 ```
 
-Ouvrir **[http://localhost:4273](http://localhost:4273)**.
+Open **http://localhost:4273** (or http://127.0.0.1:4273). Keep the terminal open; Ctrl+C stops the server. On Windows, double-click [`lancer.bat`](lancer.bat) to install dependencies when needed, build and open the app.
 
-Le backend sert directement l’interface compilée. Garder le terminal ouvert ; **Ctrl+C** arrête le serveur. L’adresse `http://127.0.0.1:4273` fonctionne également.
+## Explore and diagnose
 
-**Sous Windows :** double-cliquer sur [`lancer.bat`](lancer.bat) pour installer les dépendances si nécessaire, compiler l’interface et ouvrir le navigateur.
+- Browse installed Steam Workshop and local mods in cards or a table. Workshop parents group their Zomboid submods, each with its own ID, activation state and position.
+- Search, filter active/inactive/missing mods, and inspect declared requirements, incompatibilities, duplicate IDs and version ranges. Open a detected submod folder from its detail panel.
+- Sort the display by name, update date or saved order. Sorting happens before pagination and keeps parent groups together. Display sorting does not change the saved load order.
+- Choose 12, 24, 36, 60 or 100 parents per page. Language (English/French), four themes, sidebar state and navigation preferences persist in the browser.
 
-## Une interface, deux niveaux
+Diagnostics use installed metadata. Declared incompatibilities are findings; possible collisions remain suspicions. Static analysis cannot guarantee conflict-free gameplay.
 
-### Le parent Workshop
+## Edit saves and local collections
 
-Il correspond à **un abonnement Steam**, avec un titre, une description, un poster et un identifiant Workshop. Une ligne ou carte présente tous les sous-mods installés de ce parent.
+The source selector separates single-player saves from collections stored in `<userDir>/Lua/pz_modlist_settings.cfg`. Favorites are excluded. Each source retains its own navigation preferences.
 
-### Les sous-mods Zomboid
+Add a mod ID, remove selected submods, or open **Edit load order**. Drag rows, use arrows or enter a position. Undo, redo and restore-original controls operate on the draft. Adding an ID appends it without installing its files or activating its requirements.
 
-Chaque sous-mod possède son **propre ID** et son état dans la sauvegarde : **activé** ou **désactivé**. Cliquer sur son tag ouvre sa fiche, ses prérequis et ses incompatibilités.
+### Automatic load order
 
-Dans sa fiche, **Ouvrir le dossier du mod** ouvre l’Explorateur Windows sur le répertoire du sous-mod sélectionné, pour les mods Steam comme pour les mods locaux. Il s’agit de la racine du mod, au-dessus des variantes `42` ou `common`. Le bouton est désactivé si les fichiers n’ont pas été détectés ; si le dossier a disparu depuis l’analyse, actualiser la bibliothèque. Le backend accepte uniquement un identifiant opaque associé à un dossier détecté, jamais un chemin libre fourni par le navigateur.
+Click **Auto-sort** inside the load-order editor to arrange all active IDs using declared `require`, `loadAfter` and `loadBefore` constraints. Requirements precede their consumers. Original draft positions break ties between available choices. Search filters do not limit the sort.
 
-- **Retirer un sous-mod** modifie uniquement sa présence dans `mods.txt`.
-- **Se désabonner sur Steam** concerne tout le parent et peut affecter d’autres sauvegardes.
-- Le bouton **Abonnement du parent** ouvre actuellement la fiche Steam : le désabonnement direct depuis l’application n’est pas implémenté.
+The result remains an undoable draft. Select **Review and apply**, inspect the changes, close Project Zomboid and confirm saving. Existing revision checks, validation and backups apply. No mod is added, removed, downloaded or unsubscribed.
 
-### Les mods locaux
+Cyclic constraints leave the draft unchanged and display blocked IDs, including downstream dependents. Missing requirements remain diagnostic issues; absent endpoints do not constrain sorting. Undeclared constraints cannot be inferred. Project Zomboid may recalculate a collection→s order when activating it.
 
-Les emplacements suivants sont analysés sans les assimiler à des abonnements Steam :
+### Collection management and missing references
 
-```text
-Zomboid/
-├── mods/<mod>/
-└── Workshop/<projet>/Contents/mods/<mod>/
-```
+Rename or duplicate a local collection using the source panel. Existing names are rejected. Renaming moves navigation preferences; duplication copies them.
 
-Les liens vers des dossiers de développement sont pris en charge à l’entrée de `mods/`. Les variantes de version et les métadonnées `mod.info` servent à afficher nom, description et image. Pour les projets Workshop locaux, `preview.png` sert de remplacement si aucun poster de mod n’est disponible.
+In **Missing mods**, select missing references and confirm removal. Qualified references such as `123/MyMod` and `456/MyMod` remain distinct. Removing a reference absent from disk leaves unresolved requirements visible; installed requirements used by remaining mods stay protected. This removes references only, without deleting mod files or changing Steam subscriptions.
 
-Les sources locales restent sur le disque quand un ID est retiré de la sauvegarde. Leur présence sur disque ne prouve pas à elle seule que le jeu charge ce projet ; les doublons d’IDs sont signalés.
+All writes require the game to be closed, check concurrent changes and create a backup before modifying an existing file. Collection edits preserve other profiles, favorites, unknown lines, encoding and line endings. New profile backups live in `<userDir>/backups/pz-mods/profiles/`, outside `Lua/`. Old backups are not moved or deleted automatically. The interface reports save progress, success time and failures.
 
-## Réorganiser une sauvegarde
+## Import, export and Steam
 
-1. Choisir une sauvegarde puis ouvrir **Dans la sauvegarde → Modifier l’ordre**.
-2. Déplacer une ligne, utiliser **↑ / ↓**, ou saisir une position et valider avec **Entrée**.
-3. Examiner les contraintes signalées. La recherche conserve les positions de la liste complète.
-4. Cliquer sur **Vérifier et appliquer** pour revoir les changements.
-5. **Fermer Project Zomboid**, puis confirmer l’enregistrement.
+**Import / export** previews actions before execution:
 
-### Un code couleur explicite
-
-![Éditeur d’ordre : un sous-mod déplacé avant son prérequis est signalé en rouge, et son prérequis en bleu](docs/screenshot-order.png)
-
-_Exemple fictif : « Interface » a été placé avant « Core ». La ligne rouge explique le problème, la ligne bleue identifie le prérequis et l’application du brouillon est bloquée._
-
-| Couleur   | Signification                                                                |
-| --------- | ---------------------------------------------------------------------------- |
-| 🔴 Rouge  | Nouvelle violation d’une contrainte déclarée : application bloquée           |
-| 🟠 Orange | Problème déjà présent dans l’ordre initial : correction progressive possible |
-| 🔵 Bleu   | Mod servant de repère dans une contrainte de chargement                      |
-
-Les badges et explications accompagnent les couleurs. Le contrôle utilise les prérequis et les directives `loadModAfter` / `loadModBefore` lorsque les deux mods sont actifs.
-
-L’éditeur conserve **exactement les mêmes IDs**, y compris leurs préfixes Workshop. Les cartes, commentaires et fins de ligne restent en place. Il ne retire aucun mod et ne change aucun abonnement Steam.
-
-**Voir l’ordre sans le modifier :** les tags affichent leur position dans `mods.txt`. La bibliothèque conserve toujours **une seule ligne ou carte par Workshop ID**, avec tous ses sous-mods à droite. Les parents sont triés par leur premier sous-mod actif. L’éditeur montre la séquence exacte des IDs sans enregistrer de changement tant que vous ne confirmez pas.
-
-## Ajouter un mod à une sauvegarde
-
-1. Sélectionner la sauvegarde puis cliquer sur **Ajouter un mod**, ou ouvrir la fiche d’un sous-mod inactif et cliquer sur **Activer dans la sauvegarde**.
-2. Saisir le **modId déclaré dans `mod.info`**, par exemple `ExampleCore`. Un identifiant qualifié `123456789/ExampleCore` est accepté pour préciser un fournisseur Workshop.
-3. Cliquer sur **Vérifier** : l’aperçu indique l’ID résolu, sa future position, les prérequis manquants, les incompatibilités et les contraintes de chargement à examiner.
-4. Fermer Project Zomboid, confirmer puis cliquer sur **Ajouter à la sauvegarde**.
-
-Le mod est ajouté **en fin de liste**, sans modifier les lignes existantes. Les prérequis ne sont pas ajoutés automatiquement : consulter les avertissements puis utiliser l’éditeur d’ordre si nécessaire. Aucun abonnement Steam ni téléchargement n’est lancé par cette action. Un ID inconnu peut être enregistré après avertissement, mais ses fichiers devront être installés pour jouer. Un mod déjà actif n’est pas ajouté une seconde fois.
-
-![Aperçu d’ajout d’un modId : sauvegarde ciblée, position et confirmation avant écriture](docs/screenshot-add.png)
-
-Comme les autres écritures, l’ajout contrôle la révision de `mods.txt`, crée une copie de sécurité et refuse d’écrire si le jeu est ouvert ou si le format du fichier est ambigu.
-
-## Identifier les mods qui dépendent d’un prérequis
-
-Le badge **PRÉREQUIS · N** apparaît sur les parents concernés, en cartes comme en tableau. Son infobulle indique combien de mods déclarent un sous-mod de ce parent comme prérequis et combien sont actifs dans la sauvegarde courante. Cliquer sur le badge ouvre la fiche du sous-mod concerné.
-
-La section **Utilisé par** liste les consommateurs directs du sous-mod, avec leurs IDs et leur état **dans la sauvegarde** ou **installé, inactif**. Cliquer sur un consommateur ouvre sa fiche. Les variantes d’un même fournisseur sont dédupliquées ; les dépendances entre sous-mods d’un même parent sont incluses. Ces informations reflètent les déclarations des mods, sans déduire les dépendances non déclarées.
-
-![Fiche d’un prérequis : le panneau Utilisé par présente les mods qui en dépendent](docs/screenshot-dependents.png)
-
-## Importer, exporter et créer une collection
-
-Le bouton **Importer / exporter** ouvre un aperçu avant toute action :
-
-- **Depuis une sauvegarde** : télécharger un fragment serveur `.ini` ou un manifeste JSON. `Mods=` conserve l’ordre des IDs Zomboid ; `WorkshopItems=` contient les parents Steam sans doublons.
-- **Profil local du jeu** : copier un profil partageable, télécharger un `.cfg` autonome ou l’enregistrer dans `Lua/pz_modlist_settings.cfg`, avec préservation des favoris et des autres profils.
-- **Depuis un serveur** : coller une liste ou charger un `.ini`, puis analyser. Seules les directives `Mods=` et `WorkshopItems=` sont retenues ; les mots de passe et autres paramètres sont ignorés.
-- **Abonnements** : connecter Steam, examiner les parents proposés, puis confirmer. Les éléments déjà abonnés sont conservés et les échecs sont détaillés par lot.
-- **Collection** : ouvrir le formulaire officiel Steam prérempli, terminer sa création dans le navigateur, puis revenir détecter la collection et confirmer l’ajout des parents sélectionnés.
-
-Microsoft Edge ou Google Chrome doit être installé pour ces actions Steam. La connexion s’effectue dans une fenêtre dédiée, avec son propre profil local `.cache/steam-profile/`. Aucun mot de passe ni cookie n’est transmis à l’interface de PZ Mods et aucune clé API n’est nécessaire. La création du formulaire reste une étape manuelle sur Steam ; l’application ne publie pas automatiquement une collection.
-
-Les mods locaux ne peuvent pas devenir des abonnements Workshop. Les IDs introuvables, ambigus ou absents de `WorkshopItems=` sont signalés. Une liste importée ne modifie aucune sauvegarde. Le fragment exporté ne remplace pas une configuration serveur complète : configurer séparément les cartes (`Map=`), les paramètres du monde et les mods locaux nécessaires. Une collection Steam ne conserve ni les sous-mods activés ni leur ordre : conserver aussi le fragment serveur ou le manifeste.
-
-### Exemple de transfert serveur
+- Export server `.ini` fragments or JSON manifests. `Mods=` preserves Zomboid ID order; `WorkshopItems=` deduplicates Workshop parents.
+- Copy a shareable native profile, download a standalone `.cfg`, or save a local profile while preserving other profiles and favorites.
+- Analyze pasted or uploaded server lists. Only `Mods=` and `WorkshopItems=` are read; other settings and passwords are ignored.
+- Review and confirm Steam subscriptions, or open Steam→s prefilled collection form, complete creation manually, then detect the collection and confirm adding selected parents.
 
 ```ini
 Mods=ExampleCore;ExampleVehicles;ExampleOptionalUI
 WorkshopItems=1234567890;2345678901
 ```
 
-Exemple fictif : trois sous-mods peuvent dépendre de deux parents Workshop. Les deux listes ne se correspondent pas par position. Le manifeste JSON conserve les associations connues, les IDs d’origine et les avertissements.
+These are fictional IDs. The two lists do not correspond by position. Imports do not modify saves. Exported fragments are not complete server configurations: configure maps (`Map=`), world settings and local mods separately. Steam collections preserve neither submod activation nor load order; retain a manifest or server fragment too.
 
-Pour reprendre cette liste : ouvrir **Importer / exporter → Importer un serveur**, coller les lignes ou charger le fichier, puis cliquer sur **Analyser le contenu**. Vérifier l’aperçu avant de télécharger les exports, de lancer les abonnements ou de créer une collection. Les opérations Steam sont exécutées par lots de dix, avec un bilan des réussites, abonnements déjà actifs et échecs. Les ajouts à une collection sont confirmés par relecture de son contenu.
+Steam account actions require Microsoft Edge or Google Chrome and an explicit confirmation. Sign-in uses a dedicated browser profile at `.cache/steam-profile/`; passwords, cookies and tokens never pass through the app→s HTTP API. Public metadata needs no account. Local projects cannot become Workshop subscriptions.
 
-### Éditer une collection locale existante
+Unsubscribing affects a whole Workshop parent, not just one submod. Steam may retain downloaded files temporarily. Unsubscribing does not remove IDs from saves or collections.
 
-Le sélecteur principal distingue **Sauvegardes** et **Collections**. Les collections proviennent du fichier `<racine utilisateur Zomboid>/Lua/pz_modlist_settings.cfg` ; leur nom est celui du profil enregistré dans le jeu. Le chemin suit la racine définie dans **Configuration**. Les favoris ne sont pas proposés comme collection.
+## Configuration and caches
 
-![Sélecteur groupant les sauvegardes solo et les collections locales, avec des données fictives](docs/screenshot-source-selector.png)
+Under **Settings → Game folders**, configure the Zomboid user directory, Steam installation, saves, local mod directories and Workshop `steamapps/workshop/content/108600` directories. Only existing absolute directories are accepted. Empty fields restore automatic detection. Applying paths reloads inventory without moving game files or restarting.
 
-Choisir une collection pour consulter ses mods actifs, ses mods manquants et son diagnostic, puis utiliser les mêmes commandes que pour une sauvegarde : **ajouter un modId**, retirer des sous-mods ou éditer la séquence des IDs. La sélection, les filtres et la pagination sont mémorisés séparément pour chaque sauvegarde ou collection. Une collection ne possède pas de version de sauvegarde : les diagnostics qui nécessitent cette information ne peuvent pas être garantis.
+Defaults use `%USERPROFILE%\Zomboid` and Steam→s `libraryfolders.vdf`. Development projects under `<userDir>/Workshop/<project>/Contents/mods` are also scanned. Paths persist in Git-ignored `.cache/settings.json`; appearance and navigation remain browser-local. Invalid configured paths fall back to automatic detection at startup.
 
-Les modifications portent uniquement sur le profil sélectionné ; elles ne modifient aucune sauvegarde et ne souscrivent à aucun abonnement Steam. Le jeu doit être fermé. Chaque écriture vérifie que le fichier n’a pas changé, crée une copie de sécurité et conserve les favoris, les autres profils, les accents et les fins de ligne. Après une modification des profils dans le jeu, cliquer sur **Actualiser**.
-
-Un indicateur affiche **Enregistrement…**, puis **Modifications enregistrées** avec l’heure après confirmation de l’écriture. Il suit la collection concernée et signale les échecs. Les copies de sécurité des profils sont rangées dans `<racine utilisateur Zomboid>/backups/pz-mods/profiles/`, en dehors de `Lua`.
-
-![Confirmation d’enregistrement d’une collection fictive avec heure et accès au chemin de la copie de sécurité](docs/screenshot-collection-saved.png)
-
-**La séquence enregistrée dans un profil n’est pas une garantie de chargement dans le jeu** : Project Zomboid recalcule l’ordre à l’activation du profil.
-
-### Nettoyer les références aux mods manquants
-
-Dans **Mods manquants**, cliquer sur **Sélectionner les mods manquants**, puis **Retirer les IDs de la collection** et confirmer. La sélection porte sur tous les résultats du filtre courant, avant pagination. Le retrait supprime les références du profil avec une copie de secours ; aucun abonnement ni fichier de mod n’est supprimé.
-
-![Sélection de références manquantes fictives avant confirmation du retrait](docs/screenshot-remove-missing.png)
-
-Les identifiants qualifiés restent distincts : retirer `123/MonMod` conserve une éventuelle référence `456/MonMod`. Une référence déjà absente du disque peut être nettoyée même si un mod installé la déclare comme prérequis ; ce prérequis non résolu reste signalé dans le diagnostic. Le retrait d’un prérequis réellement installé reste protégé.
-
-Si le jeu réintroduit ces références lors de l’enregistrement, il faut aussi corriger le gestionnaire en jeu qui les ajoute : nettoyer le fichier dans PZ Mods ne modifie pas le comportement d’un autre mod.
-
-### Dupliquer ou renommer une collection locale
-
-Sélectionner une collection puis utiliser **Dupliquer** ou **Renommer** dans le panneau du sélecteur. Saisir le nom souhaité et confirmer que le jeu est fermé. Un nom déjà utilisé est refusé : aucune collection existante n’est écrasée.
-
-- **Dupliquer** crée une nouvelle collection avec les mêmes identifiants de mods, dans la même séquence, tout en conservant l’originale.
-- **Renommer** change uniquement le nom de la collection. La sélection et les préférences de navigation suivent son nouveau nom.
-
-La collection créée ou renommée devient la sélection courante et une confirmation affiche le résultat ainsi que le chemin de la copie de secours. Ces opérations conservent les autres collections, les favoris, les identifiants qualifiés, les accents et les fins de ligne. Comme les autres modifications de profils, elles vérifient la révision du fichier et créent une copie complète dans `backups/pz-mods/profiles/` avant l’écriture.
-
-![Duplication d’une collection fictive avec choix du nouveau nom et copie de sécurité](docs/screenshot-duplicate-collection.png)
-
-### Supprimer une collection locale
-
-Sélectionner la collection, puis cliquer sur **Supprimer la collection** dans le panneau du sélecteur. La confirmation rappelle son nom et demande de fermer le jeu. L’application retire uniquement cette collection du fichier de profils, après vérification de sa révision et création d’une copie complète dans `backups/pz-mods/profiles/`. Les autres collections et les favoris sont conservés.
-
-![Confirmation de suppression d’une collection fictive, avec copie de secours et vérification que le jeu est fermé](docs/screenshot-delete-collection.png)
-
-Après suppression, le sélecteur revient à une source disponible. Aucun fichier de mod, abonnement Steam ou sauvegarde solo n’est supprimé. Le chemin de la copie de sécurité est indiqué dans la confirmation de réussite ; elle permet de restaurer le fichier de profils complet si nécessaire.
-
-### Créer un profil de collection locale
-
-Dans **Importer / exporter → Exporter la sauvegarde → Exporter un profil de mods**, choisir un nom puis cliquer sur **Prévisualiser le profil**. L’export reprend les IDs de la sauvegarde, y compris les mods locaux, conserve les qualifications `123456789/ModId` et retire les antislashs initiaux utilisés dans certains `mods.txt`. Les doublons identiques sont retirés.
-
-Trois actions sont proposées :
-
-- **Copier le texte du profil** : le coller dans la fonction **Ajouter** des profils du sélecteur de mods du jeu.
-- **Télécharger ce profil .cfg** : obtenir un fichier autonome contenant uniquement ce profil et une ligne de favoris vide. **Ne pas remplacer votre fichier existant avec ce téléchargement**, car il ne contient pas vos autres profils.
-- **Créer le profil local** : jeu fermé, confirmer l’écriture dans `<racine utilisateur Zomboid>/Lua/pz_modlist_settings.cfg`. Cette racine suit la page Configuration et `PZ_USER_DIR`. Les favoris et les profils existants sont conservés ; un nom déjà utilisé nécessite une confirmation distincte pour remplacer uniquement ce profil.
-
-![Export d’un profil local : aperçu des IDs, texte partageable et confirmation avant création](docs/screenshot-profiles.png)
-
-Le format natif, vérifié dans les fonctions de lecture, d’écriture et de partage de `ModSelectorModel.lua`, est un texte UTF-8 :
-
-```text
-!fav!:ExampleFavorite;
-Ma collection:ExampleCore;123456789/ExampleOption;LocalExample;
-```
-
-La première ligne est réservée aux favoris ; chaque ligne suivante est un profil `Nom:ModId;ModId;`. Le nom ne peut pas contenir les caractères réservés du format ou utiliser le préfixe `!fav!`.
-
-Avant l’écriture directe, l’application revérifie la sauvegarde source et le fichier de profils. Une copie `pz_modlist_settings.cfg.pz-mods-<date>-<identifiant>.bak` est créée dans `<racine utilisateur Zomboid>/backups/pz-mods/profiles/` si le fichier existe ; le remplacement est atomique et conserve son encodage UTF-8, son éventuel BOM et ses fins de ligne. L’aperçu et le téléchargement ne modifient aucun fichier du jeu. Les tests utilisent des profils fictifs dans des dossiers temporaires.
-
-Ce dossier est préféré à une archive ZIP : les fichiers de profils sont petits, chaque copie reste indépendante et la restauration ne nécessite aucune extraction. Pour restaurer les profils, fermer le jeu et l’application, conserver le fichier actuel, puis recopier la sauvegarde choisie sous le nom `Lua/pz_modlist_settings.cfg`. Une copie contient le fichier complet, donc tous les profils et favoris à cette date. Les anciennes copies déjà présentes dans `Lua` restent à leur emplacement ; les nouvelles sont créées dans le dossier dédié.
-
-**Un profil natif ne garantit pas l’ordre de chargement exact de la sauvegarde** : le jeu utilise des tables Lua et recalcule l’ordre lors de l’activation. Conserver le manifeste ou l’export serveur pour partager également la séquence des IDs. Aucun abonnement Steam ni téléchargement de mod n’est effectué par cet export.
-
-## Sauvegardes et restauration
-
-Avant une écriture, le backend vérifie que le jeu est fermé et que `mods.txt` n’a pas changé depuis l’analyse. Il crée ensuite une copie à côté du fichier :
-
-```text
-mods.txt.pz-mods-<date>-<identifiant>.bak
-```
-
-Pour restaurer : fermer le jeu et l’application, conserver une copie du fichier actuel, puis recopier le `.bak` choisi sous le nom `mods.txt`.
-
-> **Avant de retirer des mods, conserver aussi une copie complète du dossier de sauvegarde.** Restaurer `mods.txt` ne restaure pas un monde déjà modifié par le jeu, notamment après le retrait de cartes, véhicules ou objets.
-
-## Diagnostic : ce que l’application vérifie
-
-- Les IDs de la sauvegarde sont présents dans les emplacements analysés.
-- Les prérequis déclarés sont installés et activés.
-- Les incompatibilités déclarées concernent des mods actifs.
-- Les plages de versions détectées et les doublons d’IDs nécessitent un examen.
-- Le brouillon d’ordre n’ajoute pas de nouvelles violations aux contraintes déclarées.
-
-**L’absence d’alerte ne garantit pas l’absence de conflit en jeu.** L’analyse ne simule pas le moteur et ne détecte pas tous les conflits de scripts Lua, objets, cartes ou contenus non déclarés.
-
-La version **locale du jeu** sert à choisir les variantes de mods ; ce n’est pas une reconstitution certaine de la version historique d’une sauvegarde. L’ordre affiché reflète `mods.txt`, pas une trace d’exécution réelle du moteur.
-
-## Cache et utilisation hors connexion
-
-| Informations                        | Stockage               | Durée avant actualisation |
-| ----------------------------------- | ---------------------- | ------------------------- |
-| Titres, descriptions et dates Steam | `.cache/workshop.json` | 6 heures                  |
-| Posters Steam                       | `.cache/posters/`      | 7 jours                   |
-| Posters servis au navigateur        | Cache navigateur       | 1 heure                   |
-| Inventaire local                    | Mémoire du backend     | 30 secondes               |
-
-Les données déjà téléchargées restent utilisables si Steam est indisponible, même après expiration. Une première connexion est nécessaire pour les éléments jamais consultés. Les téléchargements simultanés d’un même poster sont regroupés.
-
-Le bouton **Actualiser** force une nouvelle lecture des sauvegardes et des fichiers de mods, même pendant les 30 secondes de cache. Les titres et posters Steam conservent leur cache séparé.
-
-Après un désabonnement, Steam peut conserver temporairement les fichiers sur le disque. PZ Mods affiche leur présence réelle, sans en déduire que l’abonnement est encore actif. Une fois les fichiers retirés, un mod encore référencé dans la sauvegarde reste visible avec le badge **FICHIERS MANQUANTS** et l’état **MANQUANT** sur son sous-mod. Le désabonnement ne retire pas automatiquement son ID de `mods.txt`.
-
-Pour vider les métadonnées et posters : arrêter le backend, supprimer `.cache/workshop.json` et `.cache/posters/`, puis relancer. Le profil de connexion Steam est séparé dans `.cache/steam-profile/` ; le supprimer déconnecte ce navigateur dédié. Les sauvegardes et sources de mods restent dans leurs emplacements d’origine.
-
-## Configuration
-
-Les emplacements par défaut sont `%USERPROFILE%\Zomboid` et les bibliothèques déclarées dans le `libraryfolders.vdf` de Steam.
-
-La page **Configuration → Dossiers du jeu** permet de personnaliser :
-
-| Réglage                    | Dossier attendu                                                                           |
-| -------------------------- | ----------------------------------------------------------------------------------------- |
-| Racine utilisateur Zomboid | Dossier principal des données utilisateur du jeu.                                         |
-| Installation Steam         | Racine du client Steam, contenant `steamapps/libraryfolders.vdf`.                         |
-| Sauvegardes solo           | Dossier `Saves`, contenant les modes puis leurs sauvegardes.                              |
-| Mods locaux                | Un ou plusieurs dossiers contenant les répertoires des mods, un chemin par ligne.         |
-| Workshop Project Zomboid   | Un ou plusieurs dossiers `steamapps/workshop/content/108600`, contenant les IDs Workshop. |
-
-Les projets en développement sont toujours analysés dans `<racine Zomboid>/Workshop/<projet>/Contents/mods`. Les dossiers effectivement utilisés sont consultables sur cette page. Laisser un champ vide rétablit la détection automatique pour ce réglage ; **Restaurer la détection automatique** rétablit tous les chemins par défaut.
-
-Cliquer sur **Enregistrer les dossiers** pour appliquer les chemins : seuls des dossiers absolus existants sont acceptés, l’inventaire est rechargé sans redémarrage et aucun fichier de jeu n’est déplacé. Les réglages sont enregistrés dans `.cache/settings.json`, exclu de Git, et repris au prochain lancement. Ils sont communs aux navigateurs utilisant ce backend. Les préférences d’apparence et de navigation restent propres au navigateur.
-
-Les variables d’environnement restent disponibles comme valeurs par défaut, lorsqu’aucun chemin n’est configuré dans l’interface :
+Optional environment defaults:
 
 ```powershell
 $env:PZ_USER_DIR = Join-Path $env:USERPROFILE 'Zomboid'
@@ -354,63 +92,36 @@ $env:PORT = '4273'
 npm start
 ```
 
-Ces variables sont facultatives. Aucun fichier `.env` n’est nécessaire ni chargé automatiquement. En développement, adapter aussi le proxy de `vite.config.ts` si le port du backend change.
+No `.env` file is required or automatically loaded. If changing the backend port during development, update the Vite proxy too.
 
-Si un dossier configuré n’est plus accessible au démarrage, l’application revient aux chemins automatiques. Vérifier et réenregistrer les réglages après avoir reconnecté un disque externe.
+Workshop metadata is cached in `.cache/workshop.json` for six hours, posters in `.cache/posters/` for seven days, and local inventory in memory for 30 seconds. **Refresh** forces a local inventory rescan. Previously cached Steam data remains available when Steam is unavailable. Stop the backend before clearing metadata/poster caches. Deleting `.cache/steam-profile/` signs out the dedicated browser.
 
-## Développement
+## Development
 
-Installer d’abord les dépendances avec `npm ci`, puis ouvrir **deux terminaux** dans le projet.
+Run `npm ci`, then use two terminals:
 
-| Terminal              | Commande               | Adresse                 |
-| --------------------- | ---------------------- | ----------------------- |
-| Backend Fastify       | `npm run dev:backend`  | `http://127.0.0.1:4273` |
-| Frontend React / Vite | `npm run dev:frontend` | `http://127.0.0.1:5173` |
+| Command                | Purpose                                    | Address               |
+| ---------------------- | ------------------------------------------ | --------------------- |
+| `npm run dev:backend`  | Fastify with source watching               | http://127.0.0.1:4273 |
+| `npm run dev:frontend` | React/Vite development server              | http://127.0.0.1:5173 |
+| `npm run check`        | UTF-8 checks, lint, types, tests and build | →                     |
+| `npm run format:check` | Check Prettier formatting                  | →                     |
+| `npm run format`       | Apply Prettier formatting                  | →                     |
 
-Le frontend relaie `/api` vers le backend. Utiliser les adresses indiquées ; les deux services doivent rester ouverts. Le backend et Vite rechargent leurs sources après modification.
-
-### Vérifications
-
-```powershell
-npm run check         # UTF-8, ESLint, types, tests et build
-npm run format:check  # Mise en forme Prettier
-npm run format        # Appliquer Prettier
-```
-
-Les tests utilisent des fichiers temporaires et des réponses Steam simulées ; ils n’écrivent pas dans les sauvegardes réelles.
-
-Le frontend utilise des composants Radix comportant la directive React Server Components `"use client"`. L’application étant entièrement rendue dans le navigateur, le build ignore uniquement l’avertissement Rollup `MODULE_LEVEL_DIRECTIVE` correspondant à cette directive dans les paquets `@radix-ui`. Les autres avertissements restent visibles.
-
-### Architecture
+Vite proxies `/api` to Fastify. Tests use temporary files and simulated Steam responses, never personal saves or live account mutations.
 
 ```text
-src/
-├── domain/        Modèles et règles métier indépendants
-├── application/   Cas d’usage et ports
-└── adapters/      Fichiers Zomboid, Steam, cache et serveur HTTP
-web/               Interface React
-test/              Tests métier et adaptateurs
+src/domain/        Models and business rules
+src/application/   Use cases and ports
+src/adapters/      Filesystem, Steam, caches and HTTP server
+web/               React UI; translations in web/locales/
+test/              Domain, application, adapter and UI-logic tests
 ```
 
-L’architecture hexagonale et les dépendances autorisées sont documentées dans [`AGENTS.md`](AGENTS.md). Le domaine ne dépend ni du disque, ni de Fastify, ni de Steam.
+The approved lightweight hexagonal architecture is documented in [`AGENTS.md`](AGENTS.md). Dependencies point toward the domain; domain rules perform no disk or network access. Use strict TypeScript, ESLint, Prettier and UTF-8 text.
 
-## Confidentialité
+## Privacy
 
-- Le serveur écoute uniquement sur **l’interface locale** et contrôle l’origine des mutations.
-- Aucune clé Steam, session Steam ou connexion au compte n’est nécessaire pour consulter les informations publiques.
-- Les sauvegardes, caches, dépendances et fichiers d’environnement sont exclus de Git.
-- Le profil Steam dédié contient des données de connexion locales : ne jamais partager `.cache/steam-profile/`. Les actions d’abonnement et de collection nécessitent une connexion Steam et une confirmation explicite dans l’application.
-- Les métadonnées Steam et posters sont récupérés par le backend ; les polices Google Fonts peuvent être chargées par le navigateur.
-- Les chemins de fichiers locaux sont visibles dans votre interface et peuvent apparaître dans vos captures : les vérifier avant de les partager.
+The server binds to the loopback interface and checks mutation origins. Saves, caches, dependencies and environment files are excluded from Git. Never share `.cache/steam-profile/` or credentials. The backend retrieves Steam metadata and posters; the browser may load Google Fonts. Local paths can appear in the interface and screenshots: review captures before sharing.
 
-Le dépôt contient le code, la documentation et des données de test fictives, sans export de sauvegarde ni inventaire personnel de mods.
-
----
-
-<div align="center">
-
-**Moins de conflits. Plus de survie.**
-
-Projet communautaire indépendant, sans affiliation avec The Indie Stone ou Valve.
-
-</div>
+Independent community project, unaffiliated with The Indie Stone or Valve.

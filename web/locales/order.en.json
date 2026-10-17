@@ -50,5 +50,9 @@
   "Fermer": "Close",
   "Enregistrement…": "Saving…",
   "Confirmer et enregistrer": "Confirm and save",
-  "Vérifier et appliquer": "Review and apply"
+  "Vérifier et appliquer": "Review and apply",
+  "Trier automatiquement": "Auto-sort",
+  "Trie les IDs actifs selon require, loadAfter et loadBefore, sans ajouter de mod.": "Sort active IDs by require, loadAfter and loadBefore, without adding mods.",
+  "Tri automatique terminé. Vérifiez le brouillon avant de l’enregistrer.": "Auto-sort complete. Review the draft before saving.",
+  "Tri impossible : contraintes cycliques. IDs bloqués : {{ids}}. Le brouillon est conservé.": "Cannot sort: cyclic constraints. Blocked IDs: {{ids}}. The draft is unchanged."
 }

@@ -237,3 +237,45 @@ export function validateLoadOrder(mods: Mod[], ids: string[]): LoadOrderViolatio
   }
   return violations;
 }
+
+/** Stable topological order of active IDs; never adds or removes a reference. */
+export function autoSortLoadOrder(
+  mods: Mod[],
+  ids: string[],
+): { ok: true; ids: string[] } | { ok: false; blockedIds: string[] } {
+  const edges = ids.map(() => new Set<number>());
+  const incoming = ids.map(() => 0);
+  const position = (reference: string) => ids.findIndex((raw) => matchesActiveId(reference, raw));
+  for (const [index, raw] of ids.entries()) {
+    const mod = mods.find((candidate) => matchesInstalledMod(raw, candidate));
+    if (!mod) continue;
+    for (const [references, follows] of [
+      [mod.requires, true],
+      [mod.loadAfter || [], true],
+      [mod.loadBefore || [], false],
+    ] as const) {
+      for (const reference of references) {
+        const target = position(reference);
+        if (target < 0) continue;
+        const from = follows ? target : index;
+        const to = follows ? index : target;
+        if (!edges[from].has(to)) {
+          edges[from].add(to);
+          incoming[to]++;
+        }
+      }
+    }
+  }
+  const remaining = new Set(ids.map((_, index) => index));
+  const sorted: string[] = [];
+  while (remaining.size) {
+    // Original position breaks ties, keeping unconstrained choices deterministic.
+    const next = [...remaining].find((index) => incoming[index] === 0);
+    if (next === undefined)
+      return { ok: false, blockedIds: [...remaining].map((index) => ids[index]) };
+    remaining.delete(next);
+    sorted.push(ids[next]);
+    for (const target of edges[next]) incoming[target]--;
+  }
+  return { ok: true, ids: sorted };
+}

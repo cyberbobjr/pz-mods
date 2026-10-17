@@ -3,7 +3,12 @@ import { test } from 'node:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { validateLoadOrder, isExactPermutation, type Mod } from '../src/domain/mods.js';
+import {
+  autoSortLoadOrder,
+  validateLoadOrder,
+  isExactPermutation,
+  type Mod,
+} from '../src/domain/mods.js';
 import { ModService, type LibraryPort } from '../src/application/service.js';
 import { LocalLibrary } from '../src/adapters/local-library.js';
 
@@ -118,4 +123,42 @@ test('reordering fixture preserves non-mod bytes, qualifiers, line formatting an
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }
+});
+
+test('auto-sort respects requirements, before/after and exact qualified references', () => {
+  const mods = [
+    mod('A', { requires: ['B', 'Missing'], loadAfter: ['123/C'], loadBefore: ['D'] }),
+    mod('B'),
+    mod('C', { workshopId: '123' }),
+    mod('D'),
+    mod('C', { workshopId: '456', loadBefore: ['B'] }),
+  ];
+  const ids = ['D', 'A', 'B', '123/C', '456/C', 'Unknown'];
+  const result = autoSortLoadOrder(mods, ids);
+  assert.ok(result.ok);
+  assert.ok(isExactPermutation(ids, result.ids));
+  assert.deepEqual(validateLoadOrder(mods, result.ids), []);
+  assert.deepEqual(autoSortLoadOrder(mods, result.ids), result);
+  assert.deepEqual(ids, ['D', 'A', 'B', '123/C', '456/C', 'Unknown']);
+});
+
+test('auto-sort retains unconstrained order and duplicate raw references', () => {
+  assert.deepEqual(autoSortLoadOrder([], ['X', 'X', 'Y']), { ok: true, ids: ['X', 'X', 'Y'] });
+  assert.deepEqual(autoSortLoadOrder([], []), { ok: true, ids: [] });
+});
+
+test('auto-sort refuses cycles and self constraints without returning a partial draft', () => {
+  const mods = [
+    mod('A', { requires: ['B'] }),
+    mod('B', { loadAfter: ['A'] }),
+    mod('C', { requires: ['A'] }),
+  ];
+  assert.deepEqual(autoSortLoadOrder(mods, ['Free', 'C', 'A', 'B']), {
+    ok: false,
+    blockedIds: ['C', 'A', 'B'],
+  });
+  assert.deepEqual(autoSortLoadOrder([mod('A', { loadBefore: ['A'] })], ['A']), {
+    ok: false,
+    blockedIds: ['A'],
+  });
 });
