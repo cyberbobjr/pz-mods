@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Documentation
+
+- Expand both READMEs into illustrated player guides covering the available
+  library, diagnostics, load-order, collection, transfer and settings workflows.
+- Add separate English and French screenshots captured from the application with
+  fictional demonstration data.
+
 ## [1.0.0] - 2026-10-17
 
 First functional release of PZ Mods.
