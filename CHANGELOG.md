@@ -1,6 +1,28 @@
 # Changelog
 
-## Unreleased
+## [1.0.0] - 2026-10-17
+
+First functional release of PZ Mods.
+
+### Release scope
+
+- Browse and diagnose installed Workshop and local mods for single-player saves
+  and native local collections.
+- Add and remove mod references, edit load order manually or automatically, and
+  rename or duplicate local collections.
+- Protect file changes with revision checks, game-closed guards, confirmations
+  and backups; preserve unrelated profiles and favorites.
+- Import and export server lists and native profiles, with optional confirmed
+  Steam subscription and collection actions.
+- Configure library folders and use a persistent English or French interface
+  with themes, filters and pagination.
+
+### Limitations
+
+- Diagnostics and automatic sorting use declared metadata; they cannot guarantee
+  conflict-free gameplay or infer undeclared load-order constraints.
+- Project Zomboid may recalculate collection order when activating a profile.
+- Windows, Steam Project Zomboid and Node.js 24 or newer are required.
 
 ### Added
 

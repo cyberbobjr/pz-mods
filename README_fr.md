@@ -2,6 +2,8 @@
 
 # PZ Mods
 
+**v1.0.0** / [Changelog](CHANGELOG.md)
+
 [English](README.md) / Français
 
 **Votre arsenal, sous contrôle.**

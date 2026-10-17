@@ -2,6 +2,8 @@
 
 # PZ Mods
 
+**v1.0.0** / [Changelog](CHANGELOG.md)
+
 **Your loadout, under control.**
 
 A local Project Zomboid mod manager for single-player saves and local collections.
